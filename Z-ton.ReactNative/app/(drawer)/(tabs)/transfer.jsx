@@ -112,8 +112,61 @@ const TransferScreen = () => {
              setIsLoading(false);
            }
     }
-   
 
+    // this Function is called during useEffect
+    const handleAccountLookup = async () => {
+      
+      // empty error state and set is loading to be true
+      setReceiverName(''); // Clear previous receiver name before attempting new authentication
+      setErrors({account_number: '',amount: '',description: '',bank_id: '',});
+      setIsLoading(true);
+
+        try {
+
+            // Send request to laravel
+             const response = await axios.post(`${API_URL}/transfer/authenticateBankDetails/${user.id}`,{
+                  // send the input data to laravel
+                  account_number: transferDetails.account_number,
+                  amount: "100",
+                  description: transferDetails.description,
+                  bank_id: selectedBank?.id,
+             });
+
+            const  responseData = response.data;
+             if (responseData.status == "success") {
+                setReceiverName(responseData.receiver_name); // Set the receiver name on successful authentication
+
+                setErrors({}); // empty all error state if Recipant is found
+             }
+
+        } catch (error) { // handle errors from the API or network issues
+                   const data = error.response?.data; // Safely extract response data if it exists
+                  
+                    // validation error from Laravel
+                    if (data?.errors) { // check if there are validation errors in the response
+                      setErrors({
+                        account_number: data.errors.account_number?.[0] || "",
+                        amount: data.errors.amount?.[0] || "",
+                        description: data.errors.description?.[0] || "",
+                        bank_id: data.errors.bank_id?.[0] || "",
+                      });
+                    } else {
+                      // other errors (e.g. connection issues)
+                      const message = data?.message || "Connection failed. Something went wrong.";
+                      Alert.alert("Failed", message);
+                    } 
+        
+        
+           } finally { // reset loading state after the login process is complete, regardless of success or failure
+             setIsLoading(false);
+           }
+    }
+
+  // Run only when selectedBank or account_number changes 
+  useEffect(() => {
+    if (!selectedBank || transferDetails.account_number.length < 9) return;
+      handleAccountLookup(); 
+  }, [selectedBank, transferDetails.account_number]);
   
 
 
@@ -124,7 +177,7 @@ const TransferScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-      >
+      > 
       <ScrollView contentContainerStyle={styles.content}>
 
         {/* Top Action Row: History and Saved */}
@@ -133,7 +186,7 @@ const TransferScreen = () => {
             <Ionicons name="time-outline" size={20} color={COLORS.gold} />
             <Text style={styles.topActionText}>Transfer History</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.topActionButton}  onPress={() => router.push("/pages/navigate/saved-transfers")}>
+          <TouchableOpacity style={styles.topActionButton}  onPress={() => router.push("/pages/navigate/saved-transfer")}>
             <Ionicons name="save-outline" size={20} color={COLORS.gold} />
             <Text style={styles.topActionText}>Saved Transfer</Text>
           </TouchableOpacity>
@@ -165,7 +218,7 @@ const TransferScreen = () => {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Select Source Account</Text>
           <TouchableOpacity style={styles.pickerBox}>
-            <Text style={styles.pickerText}>0123456789 ($1,234.56)</Text>
+            <Text style={styles.pickerText}>{user.account_number} (${user.balance})</Text>
             <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
           </TouchableOpacity>
         </View>
@@ -220,7 +273,7 @@ const TransferScreen = () => {
         {selectedMode !== "Own Accounts" ? ( 
         <TouchableOpacity 
           style={styles.quickSelectRow} 
-          onPress={() => router.push("/pages/navigate/saved-transfers")}
+          onPress={() => router.push("/pages/navigate/select-beneficiary")}
         >
           <Text style={styles.quickSelectText}>Quick Select Beneficiary? <Text style={styles.goldText}>Choose from Saved</Text></Text>
           <Ionicons name="chevron-forward" size={16} color={COLORS.gold} />
@@ -332,6 +385,9 @@ const TransferScreen = () => {
         bankName={selectedBank?.name}
         amount={transferDetails.amount}
         transectionHistory={transectionHistory}
+        setTransferDetails={setTransferDetails}
+        setSelectedBank={setSelectedBank}
+        setReceiverName={setReceiverName}
       />
 
 

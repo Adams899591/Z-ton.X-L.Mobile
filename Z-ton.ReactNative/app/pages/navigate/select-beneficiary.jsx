@@ -35,16 +35,20 @@ const SAVED_TRANSFERS = [
 const SelectBeneficiary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [beneficiaries, setBeneficiaries] = useState(SAVED_TRANSFERS);
+  const [selectedBeneficiary, setSelectedBeneficiary] = useState(null);
 
-  const handleViewDetails = (item) => {
-    Alert.alert(
-      "Beneficiary Details",
-      `Name: ${item.name}\nBank: ${item.bank}\nAccount: ${item.account}\nCategory: ${item.type}`,
-      [
-        { text: "Dismiss", style: "cancel" },
-        { text: "Transfer Now", onPress: () => router.back() }
-      ]
-    );
+  const handleSelect = (item) => {
+    setSelectedBeneficiary(item);
+    
+    // Navigate to the transfer page with the selected data
+    router.push({
+      pathname: '/(drawer)/(tabs)/transfer', // Replace', // Adjust this path to your actual transfer page
+      params: {
+        receiver: item.name,
+        receiver_bank: item.bank,
+        receiver_account: item.account
+      }
+    });
   };
 
  
@@ -89,7 +93,7 @@ const SelectBeneficiary = () => {
       friction={2} // How much the swipeable will move with a swipe
       rightThreshold={80} // How far the swipeable must be swiped to open to reveal actions
     >
-      <TouchableOpacity style={styles.beneficiaryItem} activeOpacity={0.7} onPress={() => handleViewDetails(item)}>
+      <TouchableOpacity style={styles.beneficiaryItem} activeOpacity={0.7} onPress={() => handleSelect(item)}>
         <View style={styles.iconContainer}>
           <Ionicons name="person-circle-outline" size={28} color={COLORS.gold} />
         </View>
@@ -110,12 +114,12 @@ const SelectBeneficiary = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
       
       {/* Professional Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.black} />
+          <Ionicons name="arrow-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Saved Beneficiary</Text>
         <View style={{ width: 40 }} />
@@ -162,11 +166,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.lightGray,
+    backgroundColor: COLORS.darkGray,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
   },
   backButton: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.black },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.white },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -217,3 +222,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+
+

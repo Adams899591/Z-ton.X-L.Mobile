@@ -18,7 +18,7 @@ const COLORS = {
   green: "#10B981",
 };
 
-const TransactionReceipt = () => {
+const TransactionDetails = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -75,7 +75,13 @@ const TransactionReceipt = () => {
         ${description ? `<div class="row"><span class="label">Note</span><span class="value">${description}</span></div>` : ''}
 
         <div class="footer">
-          This is a computer-generated receipt and requires no signature.<br/>
+          <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+            <span>This is an electronically generated receipt and requires no physical signature.</span>
+          </div>
           © ${new Date().getFullYear()} Z-ton Digital Bank. All rights reserved.
         </div>
       </body>
@@ -104,25 +110,6 @@ const TransactionReceipt = () => {
     }
   };
 
-  // Function to handle downloading the receipt
-  const handleDownload = async () => {
-    try {
-      if (!reference) {
-        Alert.alert('Error', 'Transaction reference is missing.');
-        return;
-      }
-
-      const fileName = `Receipt_${reference}.pdf`;
-      // This URL should match your Laravel route that generates and returns the PDF
-      const fileUrl = `${API_URL}/transfer/download-receipt/${reference}`;
-      const fileUri = FileSystem.documentDirectory + fileName;
-
-    } catch (error) {
-      console.error('Receipt download error details:', error);
-      Alert.alert('Error', `Failed to download receipt: ${error.message}`);
-    }
-  };
-
   // Component to display each row of information in the receipt
   const InfoRow = ({ label, value }) => (
     <View style={styles.infoRow}>
@@ -140,7 +127,7 @@ const TransactionReceipt = () => {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitleWhite}>Receipt</Text>
+        <Text style={styles.headerTitleWhite}>Transaction Details</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -192,15 +179,15 @@ const TransactionReceipt = () => {
           {/* Bottom Branding */}
           <View style={styles.branding}>
             <Text style={styles.bankName}>Z-TON DIGITAL BANK</Text>
-            <Text style={styles.footerNote}>This is an official transaction record.</Text>
+            <Text style={styles.footerNote}>This is an electronically generated receipt and requires no physical signature.</Text>
           </View>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.btnSecondary} onPress={handleDownload}>
-            <Ionicons name="cloud-download-outline" size={20} color={COLORS.black} />
-            <Text style={styles.btnSecondaryText}>Download</Text>
+          <TouchableOpacity style={styles.btnSecondary} onPress={() => router.replace('(drawer)/(tabs)/overview')}>
+            <Ionicons name="checkmark-done-outline" size={20} color={COLORS.black} />
+            <Text style={styles.btnSecondaryText}>Done</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.btnPrimary} onPress={handleShare}>
@@ -214,7 +201,7 @@ const TransactionReceipt = () => {
   );
 };
 
-export default TransactionReceipt;
+export default TransactionDetails;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.lightGray },

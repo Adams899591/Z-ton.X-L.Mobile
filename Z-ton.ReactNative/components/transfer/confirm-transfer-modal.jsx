@@ -66,6 +66,7 @@ const ConfirmTransferModal = ({styles, showConfirmModal, setShowConfirmModal, pi
                     description: responseData.description || "",
                     date: responseData.date || "",
                 }])
+                console.log("Transfer successful:", responseData);
 
             } else {
                 // Display general error message if status is not 'success'
