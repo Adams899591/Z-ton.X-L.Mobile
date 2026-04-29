@@ -117,12 +117,6 @@ const TransactionReceipt = () => {
       const fileUrl = `${API_URL}/transfer/download-receipt/${reference}`;
       const fileUri = FileSystem.documentDirectory + fileName;
 
-        // });
-      // }
-       else {
-        throw new Error('Failed to download file from server');
-      }
-
     } catch (error) {
       console.error('Receipt download error details:', error);
       Alert.alert('Error', `Failed to download receipt: ${error.message}`);
