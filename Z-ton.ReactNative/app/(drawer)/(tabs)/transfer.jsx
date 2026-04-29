@@ -5,11 +5,14 @@ import { Link, useRouter } from 'expo-router';
 import BankSelectionModal from '../../../components/transfer/bank-selection-modal';
 import ConfirmTransferModal from '../../../components/transfer/confirm-transfer-modal';
 import TransferSuccessModal from '../../../components/transfer/transfer-success-modal';
+import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
+import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import { API_URL } from '../../server/config';
 import { useContext } from 'react';
 import { UserContext } from '../../UserContext';
+import BeneficiaryTransferToggle from '../../../components/transfer/beneficiary-transfer-toggle';
 
 const COLORS = {
   black: "#000000",
@@ -28,7 +31,7 @@ const TransferScreen = () => {
   const [selectedMode, setSelectedMode] = useState('Other Bank');
   const [showBankModal, setShowBankModal] = useState(false);
   const [selectedBank, setSelectedBank] = useState(null); // Stores the selected bank object { id, name }
-  const [isScheduled, setIsScheduled] = useState(false);
+  const [saveBeneficiary, setSaveBeneficiary] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pin, setPin] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -71,6 +74,7 @@ const TransferScreen = () => {
       setReceiverName(''); // Clear previous receiver name before attempting new authentication
       setErrors({account_number: '',amount: '',description: '',bank_id: '',});
       setIsLoading(true);
+      setSaveBeneficiary(false); // Reset saveBeneficiary when looking up account
 
         try {
 
@@ -113,6 +117,71 @@ const TransferScreen = () => {
            }
     }
 
+    // Function to handle Biometric Transfer
+    const handleBiometricTransfer = async () => {
+      // 1. Validation Check: Ensure user has met the validation (receiver name exists)
+      if (!receiverName || !transferDetails.amount || !transferDetails.account_number) {
+          Alert.alert("Validation Incomplete", "Please ensure account details are validated and amount is entered before using biometrics.");
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          return;
+      }
+
+      try {
+          // 2. Check if Biometrics is enabled in Secure Storage (Local Verification)
+          // const biometricEnabled = await SecureStore.getItemAsync('biometric_token');
+          const biometricEnabled = await SecureStore.getItemAsync('biometric_token');
+
+          if (!biometricEnabled ) {
+              Alert.alert("Biometrics Not Set Up", "Please enable fingerprint authentication in your profile settings before using this feature.");
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              return;
+          }
+
+          // 3. Check if hardware supports biometrics
+          const hasHardware = await LocalAuthentication.hasHardwareAsync();
+          const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+          if (!hasHardware || !isEnrolled) {
+              Alert.alert("Biometrics Not Available", "Please enable biometrics in your device settings.");
+              return;
+          }
+
+          // 3. Trigger Biometric Authentication
+          const auth = await LocalAuthentication.authenticateAsync({
+              promptMessage: `Authorize transfer of $${transferDetails.amount} to ${receiverName}`,
+              fallbackLabel: 'Use Passcode',
+          });
+
+          if (auth.success) {
+              setIsLoading(true);
+              // 4. Send request to the new Biometric Transfer Controller
+              const response = await axios.post(`${API_URL}/transfer/biometric-transfer`, {
+                  user_id: user.id,
+                  account_number: transferDetails.account_number,
+                  amount: transferDetails.amount,
+                  description: transferDetails.description,
+                  bank_id: selectedBank?.id,
+                  bank_name: selectedBank?.name
+              });
+
+              if (response.data.status === "success") {
+                  setTransectionHistory([response.data.transaction]);
+                  setShowSuccessModal(true);
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              } else {
+                  Alert.alert("Transfer Failed", response.data.message);
+              }
+          }
+      } catch (error) {
+          // console.error("Biometric Error:", error);
+          const message = error.response?.data?.message || "An error occurred during biometric transfer.";
+          Alert.alert("Error", message);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } finally {
+          setIsLoading(false);
+      }
+    };
+
     // this Function is called during useEffect
     const handleAccountLookup = async () => {
       
@@ -120,6 +189,7 @@ const TransferScreen = () => {
       setReceiverName(''); // Clear previous receiver name before attempting new authentication
       setErrors({account_number: '',amount: '',description: '',bank_id: '',});
       setIsLoading(true);
+      setSaveBeneficiary(false); // Reset saveBeneficiary when authenticating new bank details
 
         try {
 
@@ -252,6 +322,7 @@ const TransferScreen = () => {
               onChangeText={text => {
                 setTransferDetails({...transferDetails, account_number: text});
                 setReceiverName(''); // Clear receiver name if account number is changed
+                setSaveBeneficiary(false); // Reset saveBeneficiary when account number changes
               }}
             />
             {errors.account_number && <Text style={styles.errorText}>{errors.account_number}</Text>}
@@ -309,29 +380,27 @@ const TransferScreen = () => {
            {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
         </View>
 
-        {/* Schedule Toggle */}
-        <View style={styles.scheduleRow}>
-          <View>
-            <Text style={styles.scheduleTitle}>Schedule Transfer</Text>
-            <Text style={styles.scheduleSubtitle}>Perform this transaction later</Text>
-          </View>
-          <Switch 
-            value={isScheduled}
-            onValueChange={setIsScheduled}
-            trackColor={{ false: COLORS.gray, true: COLORS.gold }}
-            thumbColor={COLORS.white}
-          />
-        </View>
+        {/* Save Beneficiary Transfer Toggle pass .props */}
+        <BeneficiaryTransferToggle
+          styles={styles}
+          saveBeneficiary={saveBeneficiary}
+          setSaveBeneficiary={setSaveBeneficiary}
+          receiverName={receiverName}
+          transectionHistory={transectionHistory}
+        />
 
         {/* Footer Actions: Continue and Fingerprint */}
         <View style={styles.footerRow}>
-             {/* <TouchableOpacity style={styles.continueButton} onPress={() => setShowConfirmModal(true)}> */}
            <TouchableOpacity style={styles.continueButton} onPress={() => handleAuthenticateBankDetails()}>
             {isLoading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) :  <Text style={styles.continueButtonText}>CONTINUE</Text> }
           </TouchableOpacity>
-          <TouchableOpacity style={styles.fingerprintButton}>
+          <TouchableOpacity 
+            style={[styles.fingerprintButton, isLoading && { opacity: 0.5 }]} 
+            onPress={handleBiometricTransfer}
+            disabled={isLoading}
+          >
             <Ionicons name="finger-print" size={44} color={COLORS.gold} />
           </TouchableOpacity>
         </View>

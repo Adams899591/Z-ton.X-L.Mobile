@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\User\Transfer\AuthenticateBankDetailsController;
 use App\Http\Controllers\User\Transfer\ConfirmUserTransferController;
 use App\Http\Controllers\User\Transfer\SavedTransferController;
+use App\Http\Controllers\User\Transfer\TransferBiometricController;
 use App\Http\Controllers\User\Transfer\TransferController;
 use App\Http\Controllers\User\Transfer\ViewReceiptController;
 use App\Http\Controllers\User\UserController;
@@ -43,4 +44,5 @@ Route::prefix("transfer")->group(function () {
     Route::post("authenticateBankDetails/{userId}", [AuthenticateBankDetailsController::class, "authenticateBankDetails"]);
     Route::post("confirm-user-transfer", [ConfirmUserTransferController::class, "confirmUserTransfer"]);
     Route::post("save-transfer",[SavedTransferController::class,"SavePayment"]);
+    Route::post("biometric-transfer", [TransferBiometricController::class, "biometricTransfer"]);
 });

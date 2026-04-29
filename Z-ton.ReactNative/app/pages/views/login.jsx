@@ -231,9 +231,13 @@ const loginScreen = () => {
         <View style={styles.actionRow}>
 
           {/* Sign In */}
-          <TouchableOpacity style={styles.signInButton} onPress={() => handleSubmit()}>
+          <TouchableOpacity 
+            style={styles.signInButton} 
+            onPress={() => handleSubmit()}
+            disabled={isLoading}
+          >
             
-                {isLoading ? ( // Only show spinner if login is loading, not biometric success animation
+                {isLoading ? ( 
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.signInButtonText}>SIGN IN</Text>
@@ -242,11 +246,12 @@ const loginScreen = () => {
           </TouchableOpacity>
 
           {/* finger print */}
-          <TouchableOpacity style={styles.fingerprintButton} onPress={handleBiometricLogin}>
-  
-                  <Ionicons name="finger-print" size={44} color={COLORS.gold} />
-
-
+          <TouchableOpacity 
+            style={[styles.fingerprintButton, isLoading && { opacity: 0.5 }]} 
+            onPress={handleBiometricLogin}
+            disabled={isLoading}
+          >
+            <Ionicons name="finger-print" size={44} color={COLORS.gold} />
           </TouchableOpacity>
 
         </View>

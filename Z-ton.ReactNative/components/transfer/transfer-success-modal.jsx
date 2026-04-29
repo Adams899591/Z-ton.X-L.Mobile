@@ -92,7 +92,7 @@ const TransferSuccessModal = ({
   // Function to reset all form fields and UI states before closing
   const handleClose = () => {
     setShowSuccessModal(false);
-    
+      
     // Reset parent form fields (if setters are passed as props)
     if (setTransferDetails) setTransferDetails('');
     if (setSelectedBank) setSelectedBank(null);
