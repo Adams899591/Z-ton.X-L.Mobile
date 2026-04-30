@@ -57,7 +57,7 @@ class TransferBiometricController extends Controller
                         'receiver' => $receiver ? $receiver->name : 'External Account',
                         'receiver_bank' => $request->bank_name ?? 'Z-ton Bank',
                         'amount' => $amount,
-                        'description' => $request->description ?? 'Biometric Transfer',
+                        'description' => $request->description ?? '',
                         'date' => now()->format('Y-m-d H:i:s'),
                     ]
                 ], 200);

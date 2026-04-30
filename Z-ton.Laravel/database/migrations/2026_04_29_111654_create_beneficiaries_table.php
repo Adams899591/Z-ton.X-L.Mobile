@@ -14,19 +14,17 @@ return new class extends Migration
         Schema::create('beneficiaries', function (Blueprint $table) {
             $table->id();
             // sender user id - foreign key referencing the users table
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+             $table->foreignId('sender_id')->nullable()->constrained("users")->onDelete('cascade');
 
             // Name of the beneficiary (e.g., "Usman Adams")
-            $table->string('name');
+            $table->string('receiver_name');
 
             // Bank name of the beneficiary (e.g., "Z-ton Bank", "Zenith Bank")
-            $table->string('bank');
+            $table->string('receiver_bank');
 
             // Account number of the beneficiary
-            $table->string('account');
-
-            // Type of beneficiary (e.g., "Z-ton Bank", "Other Bank", "Own Accounts")
-            $table->string('type');
+            $table->string('receiver_account');
+            
             $table->timestamps();
         });
     }

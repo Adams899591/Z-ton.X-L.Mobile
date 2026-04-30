@@ -234,6 +234,7 @@ const TransferScreen = () => {
 
   // Run only when selectedBank or account_number changes 
   useEffect(() => {
+    // if(transferDetails.account_number === "") return;
     if (!selectedBank || transferDetails.account_number.length < 9) return;
       handleAccountLookup(); 
   }, [selectedBank, transferDetails.account_number]);
@@ -383,10 +384,12 @@ const TransferScreen = () => {
         {/* Save Beneficiary Transfer Toggle pass .props */}
         <BeneficiaryTransferToggle
           styles={styles}
+          user={user}
           saveBeneficiary={saveBeneficiary}
           setSaveBeneficiary={setSaveBeneficiary}
           receiverName={receiverName}
-          transectionHistory={transectionHistory}
+          selectedBank={selectedBank}
+          transferDetails={transferDetails}
         />
 
         {/* Footer Actions: Continue and Fingerprint */}
@@ -457,6 +460,9 @@ const TransferScreen = () => {
         setTransferDetails={setTransferDetails}
         setSelectedBank={setSelectedBank}
         setReceiverName={setReceiverName}
+        saveBeneficiary={saveBeneficiary}
+        setSaveBeneficiary={setSaveBeneficiary}
+
       />
 
 

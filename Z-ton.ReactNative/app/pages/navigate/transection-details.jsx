@@ -37,54 +37,209 @@ const TransactionDetails = () => {
   // HTML Template for the PDF
   const htmlContent = `
     <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <head> 
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Transaction Receipt</title>
         <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #1F2937; }
-          .header { text-align: center; border-bottom: 2px solid #F3F4F6; padding-bottom: 20px; margin-bottom: 30px; }
-          .bank-name { color: #B8860B; font-size: 24px; font-weight: bold; letter-spacing: 2px; }
-          .status { color: #10B981; font-weight: bold; text-transform: uppercase; font-size: 14px; margin-top: 10px; }
-          .amount { font-size: 36px; font-weight: bold; margin: 20px 0; color: #000; }
-          .section-title { font-size: 10px; color: #9CA3AF; font-weight: bold; text-transform: uppercase; margin-top: 20px; border-bottom: 1px solid #F3F4F6; padding-bottom: 5px; }
-          .row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
-          .label { color: #9CA3AF; }
-          .value { font-weight: bold; text-align: right; }
-          .ref { font-family: monospace; font-size: 12px; color: #9CA3AF; margin-top: 10px; text-align: center; }
-          .footer { margin-top: 50px; text-align: center; font-size: 10px; color: #9CA3AF; border-top: 1px solid #F3F4F6; padding-top: 20px; }
+            @page {
+                margin: 0;
+            }
+
+            body {
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                color: #333;
+                font-size: 11px;
+                margin: 0;
+                padding: 0;
+                background-color: #fff;
+            }
+
+            .receipt-container {
+                width: 550px;
+                margin: 0 auto;
+                padding: 40px; /* Increased vertical padding for more height */
+            }
+
+            .header {
+                text-align: center;
+                border-bottom: 2px solid #F3F4F6; /* Updated border */
+                padding-bottom: 20px; /* Updated padding */
+                margin-bottom: 30px; /* Updated margin */
+            }
+
+            .bank-name {
+                color: #B8860B;
+                font-size: 24px;
+                font-weight: bold;
+                letter-spacing: 2px;
+                margin-bottom: 5px;
+            }
+
+            .status {
+                color: #10B981;
+                font-weight: bold;
+                text-transform: uppercase;
+                font-size: 14px;
+                margin-top: 10px;
+            }
+
+            .amount {
+                font-size: 36px;
+                font-weight: bold;
+                margin: 20px 0;
+                color: #000;
+            }
+            .header h1 {
+                color: #B8860B;
+                margin: 5px 0;
+                font-size: 18px;
+                text-transform: uppercase;
+            }
+
+            .reference {
+                font-family: 'Courier', monospace;
+                font-size: 10px;
+                margin-top: 10px;
+                text-align: center;
+                color: #777;
+            }
+
+            .section {
+                margin-bottom: 12px;
+            }
+
+            .section-title {
+                font-size: 9px;
+                text-transform: uppercase;
+                font-weight: bold;
+                color: #999;
+                border-bottom: 1px solid #f4f4f4;
+                margin-bottom: 5px;
+                padding-bottom: 2px;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            td {
+                padding: 3px 0;
+                vertical-align: top;
+            }
+
+            .td-label {
+                color: #666;
+                width: 40%;
+            }
+
+            .td-value {
+                text-align: right;
+                font-weight: 600;
+            }
+
+            .amount-box {
+                margin: 15px 0;
+                text-align: center;
+                background: #fafafa;
+                border-top: 2px solid #B8860B;
+                border-bottom: 2px solid #B8860B;
+                padding: 10px;
+            }
+
+            .amount-text {
+                font-size: 22px;
+                font-weight: bold;
+                color: #B8860B;
+            }
+
+            .footer {
+                margin-top: 20px;
+                text-align: center;
+                font-size: 9px;
+                color: #aaa;
+                line-height: 1.4;
+            }
+
+            .status-badge {
+                color: #27ae60;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
         </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="bank-name">Z-TON DIGITAL BANK</div>
-          <div class="status">Transaction Successful</div>
-          <div class="amount">$${parseFloat(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-          <div class="ref">REF: ${reference}</div>
+    </head>
+    <body>
+        <div class="receipt-container">
+            <div class="header"> 
+            <div class="header">
+                <div class="bank-name">Z-ton XL DIGITAL BANK</div>
+                <div class="status">Transaction Successful</div>
+                <div class="amount">$${parseFloat(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            </div>
+                <div class="reference">REF: ${reference}</div>
+            </div>
+
+            <div class="section">
+                <table style="margin-bottom: 10px;">
+                    <tr>
+                        <td class="td-label">Date</td>
+                        <td class="td-value">${date || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td class="td-label">Status</td>
+                        <td class="td-value"><span class="status-badge">Successful</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Sender</div>
+                <table>
+                    <tr>
+                        <td class="td-label">Name</td>
+                        <td class="td-value">${sender || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td class="td-label">Account</td>
+                        <td class="td-value" style="font-family: monospace;">${sender_account || 'N/A'}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Receiver</div>
+                <table>
+                    <tr>
+                        <td class="td-label">Beneficiary</td>
+                        <td class="td-value">${receiver || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td class="td-label">Bank</td>
+                        <td class="td-value">${receiver_bank || 'N/A'}</td>
+                    </tr>
+                </table>
+            </div>
+
+            ${description ? `
+            <div class="section">
+                <div class="section-title">Note</div>
+                <p>${description}</p>
+            </div>
+            ` : ''}
+
+            <div class="amount-box">
+                <p style="margin: 0; color: #666;">Amount Transferred</p>
+                <div class="amount-text">$${parseFloat(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            </div>
+
+            <div class="footer">
+                <p>Thank you for using Z-ton. This is a computer-generated receipt.</p>
+            </div>
         </div>
-
-        <div class="section-title">Sender Details</div>
-        <div class="row"><span class="label">Name</span><span class="value">${sender || 'N/A'}</span></div>
-        <div class="row"><span class="label">Account</span><span class="value">${sender_account || 'N/A'}</span></div>
-
-        <div class="section-title">Receiver Details</div>
-        <div class="row"><span class="label">Beneficiary</span><span class="value">${receiver || 'N/A'}</span></div>
-        <div class="row"><span class="label">Bank</span><span class="value">${receiver_bank || 'N/A'}</span></div>
-
-        <div class="section-title">Transaction Info</div>
-        <div class="row"><span class="label">Date</span><span class="value">${date || 'N/A'}</span></div>
-        <div class="row"><span class="label">Status</span><span class="value">Successful</span></div>
-        ${description ? `<div class="row"><span class="label">Note</span><span class="value">${description}</span></div>` : ''}
-
-        <div class="footer">
-          <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-              <path d="m9 12 2 2 4-4"></path>
-            </svg>
-            <span>This is an electronically generated receipt and requires no physical signature.</span>
-          </div>
-          © ${new Date().getFullYear()} Z-ton Digital Bank. All rights reserved.
-        </div>
-      </body>
+    </body>
     </html>
   `;
 

@@ -26,7 +26,9 @@ const TransferSuccessModal = ({
   // Added setters to reset form fields
   setTransferDetails,
   setSelectedBank,
-  setReceiverName
+  setReceiverName,
+  saveBeneficiary,
+  setSaveBeneficiary
 }) => { 
   const { user } = useContext(UserContext);
   const [isPaymentSaved, setIsPaymentSaved] = useState(false);
@@ -94,9 +96,10 @@ const TransferSuccessModal = ({
     setShowSuccessModal(false);
       
     // Reset parent form fields (if setters are passed as props)
-    if (setTransferDetails) setTransferDetails('');
+    if (setTransferDetails) setTransferDetails({});
     if (setSelectedBank) setSelectedBank(null);
     if (setReceiverName) setReceiverName('');
+    if (saveBeneficiary) setSaveBeneficiary(false);
     
     // Reset local modal state so the next transfer doesn't start as "Saved"
     setIsPaymentSaved(false);
