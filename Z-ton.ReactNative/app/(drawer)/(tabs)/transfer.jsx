@@ -234,8 +234,7 @@ const TransferScreen = () => {
 
   // Run only when selectedBank or account_number changes 
   useEffect(() => {
-    // if(transferDetails.account_number === "") return;
-    if (!selectedBank || transferDetails.account_number.length < 9) return;
+    if (!selectedBank || !transferDetails?.account_number || transferDetails.account_number.length < 9) return;
       handleAccountLookup(); 
   }, [selectedBank, transferDetails.account_number]);
   

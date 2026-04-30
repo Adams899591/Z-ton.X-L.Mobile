@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,9 +9,14 @@ import {
   StatusBar,
   Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { UserContext } from '../../UserContext';
+import axios from 'axios';
+import { API_URL } from '../../server/config';
 
 const COLORS = {
   black: "#000000",
@@ -23,37 +28,100 @@ const COLORS = {
   red: "#FF3B30",
 };
 
-// Mock data for "Saved Payments" (Past transaction records saved by user)
-const INITIAL_SAVED_PAYMENTS = [
-  { 
-    id: '1', 
-    reference: 'ZTN-78291044', 
-    sender: 'John Doe', 
-    sender_account: '1234567890', 
-    receiver: 'Usman Adams', 
-    receiver_bank: 'Z-ton Bank', 
-    amount: '15000', 
-    description: 'Project Fee', 
-    date: '21 Apr 2026' 
-  },
-  { 
-    id: '2', 
-    reference: 'ZTN-99382100', 
-    sender: 'John Doe', 
-    sender_account: '1234567890', 
-    receiver: 'Grace Ojo', 
-    receiver_bank: 'Zenith Bank', 
-    amount: '2500', 
-    description: 'Lunch refund', 
-    date: '18 Apr 2026' 
-  },
-];
+// // Mock data for "Saved Payments" (Past transaction records saved by user)
+// const INITIAL_SAVED_PAYMENTS = [
+//   { 
+//     id: '1', 
+//     reference: 'ZTN-78291044', 
+//     sender: 'John Doe', 
+//     sender_account: '1234567890', 
+//     receiver: 'Usman Adams', 
+//     receiver_bank: 'Z-ton Bank', 
+//     amount: '15000', 
+//     description: 'Project Fee', 
+//     date: '21 Apr 2026' 
+//   },
+//   { 
+//     id: '2', 
+//     reference: 'ZTN-99382100', 
+//     sender: 'John Doe', 
+//     sender_account: '1234567890', 
+//     receiver: 'Grace Ojo', 
+//     receiver_bank: 'Zenith Bank', 
+//     amount: '2500', 
+//     description: 'Lunch refund', 
+//     date: '18 Apr 2026' 
+//   },
+// ];
 
 const SavedTransfer = () => {
+    //  Access user data and updater function from context
+    const { user, setUser } = useContext(UserContext);
   const router = useRouter();
-  const [payments, setPayments] = useState(INITIAL_SAVED_PAYMENTS);
+  const [payments, setPayments] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleDelete = (id) => {
+  // Function to fetch saved transfers from the backend API
+  const fetchSavedTransfers = async () => {
+    if (!user?.id) return;
+    setIsLoading(true);
+
+    try {
+      const response = await axios.post(`${API_URL}/save-transfer/save-payment/${user.id}`);
+      const responseData = response.data;
+
+      if (responseData.status === "success") {
+        // Map the Laravel data to match your frontend item structure if necessary
+        const formattedData = responseData.data.map(item => ({
+          id: item.id.toString(),
+          reference: item.reference,
+          sender: item.sender_name,
+          sender_account: item.sender_account,
+          receiver: item.receiver_name,
+          receiver_bank: item.receiver_bank,
+          amount: item.amount,
+          description: item.description ? item.description : null,
+          date: item.transaction_date,
+        }));
+        setPayments(formattedData);
+      }
+    } catch (error) {
+      console.log("Error fetching saved transfer data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch saved transfers when component mounts or when user ID changes
+  useEffect(() => {
+    fetchSavedTransfers();
+  }, [user]);
+
+
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setRefreshing(true);
+    await fetchSavedTransfers();
+    setRefreshing(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+  
+
+
+  const handleDelete = async function (id) {
+
+    // send request to larave to delete
+      await axios.delete(`${API_URL}/save-transfer/delete-payment/${id}`);
+
+      // update the UI
+      setPayments(prev => prev.filter(p => p.id !== id))
+  }
+
+  // Function to call alert
+  const callAlert = async (id) => {
+    
     Alert.alert(
       "Delete Payment Record",
       "Are you sure you want to delete this saved transaction record?",
@@ -61,13 +129,15 @@ const SavedTransfer = () => {
         { text: "Cancel", style: "cancel" },
         { 
           text: "Delete", 
-          onPress: () => setPayments(prev => prev.filter(p => p.id !== id)),
+          // onPress: () => setPayments(prev => prev.filter(p => p.id !== id)),
+           onPress: () => handleDelete(id),
           style: "destructive" 
         },
       ]
     );
   };
 
+  // Function to Direct user to view receipt
   const handleViewReceipt = (item) => {
     router.push({
       pathname: '/pages/navigate/transection-details',
@@ -75,10 +145,12 @@ const SavedTransfer = () => {
     });
   };
 
+  // this hold all the item passed to Flatlist
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       {/* Header Row: Amount (View Button) and Delete Icon */}
       <View style={styles.cardHeader}>
+        {/* Amount View Button */}
         <TouchableOpacity style={styles.amountViewButton} onPress={() => handleViewReceipt(item)}>
           <Text style={styles.amountText}>${parseFloat(item.amount).toLocaleString()}</Text>
           <View style={styles.viewLabelContainer}>
@@ -87,7 +159,8 @@ const SavedTransfer = () => {
           </View>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.deleteIconButton} onPress={() => handleDelete(item.id)}>
+        {/* Delete Icon */} 
+        <TouchableOpacity style={styles.deleteIconButton} onPress={() => callAlert(item.id)}>
           <Ionicons name="trash-outline" size={24} color={COLORS.red} />
           <Text style={styles.deleteText}>Delete</Text>
         </TouchableOpacity>
@@ -128,18 +201,31 @@ const SavedTransfer = () => {
         <View style={{ width: 40 }} />
       </View>
 
-      <FlatList
-        data={payments}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={60} color={COLORS.lightGray} />
-            <Text style={styles.emptyText}>No saved payment records found.</Text>
-          </View>
-        }
-      />
+
+    {/* is loading */}
+     { isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.gray} />
+          <Text style={styles.loadingText}>Fetching saved payments...</Text>
+        </View>
+      ) : (
+          //  FlatList to display saved payments with pull-to-refresh and empty state
+          <FlatList
+          data={payments}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="receipt-outline" size={60} color={COLORS.lightGray} />
+              <Text style={styles.emptyText}>No saved payment records found.</Text>
+            </View>
+          }
+         />
+      )}
+
     </SafeAreaView>
   );
 };
@@ -204,6 +290,8 @@ const styles = StyleSheet.create({
   },
   emptyContainer: { marginTop: 100, alignItems: 'center' },
   emptyText: { color: COLORS.gray, fontSize: 16, marginTop: 10 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 10, color: COLORS.gray, fontSize: 14 },
 });
 
 export default SavedTransfer; 

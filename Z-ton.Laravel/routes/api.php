@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\BiometricSetUpController;
 use App\Http\Controllers\Auth\DisableBiometricController;
 use App\Http\Controllers\Auth\LoginBiometricController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\User\SaveTransfer\SavePaymentController;
 use App\Http\Controllers\User\Transfer\AuthenticateBankDetailsController;
 use App\Http\Controllers\User\Transfer\ConfirmUserTransferController;
 use App\Http\Controllers\User\Transfer\SaveBeneficiaryController;
@@ -38,6 +39,11 @@ Route::prefix("user")->group(function () {
     Route::delete("deleteTransaction/{transactionId}", [UserController::class, "deleteTransaction"]);
 });
 
+// handle save transfer inside user folder
+Route::prefix("save-transfer")->group(function(){
+   Route::post("save-payment/{userId}", [SavePaymentController::class, "SaveUserPayment"]);
+   Route::delete("delete-payment/{paymentId}", [SavePaymentController::class, "deletePayment"]);
+});
 
 // handles transfer inside the user folder
 Route::prefix("transfer")->group(function () {
@@ -48,3 +54,4 @@ Route::prefix("transfer")->group(function () {
     Route::post("biometric-transfer", [TransferBiometricController::class, "biometricTransfer"]);
     Route::post("save-beneficiary", [SaveBeneficiaryController::class, "saveBeneficiary"]);
 });
+

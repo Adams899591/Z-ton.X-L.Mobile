@@ -60,4 +60,9 @@ class User extends Authenticatable
     public function notifications(){
         return $this->hasMany(Notification::class, "user_id");
     }
+
+    // a user can save(have) many transfer
+    public function saveTransfer(){
+        return $this->hasMany(SavedTransfer::class, "user_id");
+    }
 }
