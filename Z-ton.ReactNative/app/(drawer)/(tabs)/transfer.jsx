@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, Modal, FlatList, StatusBar, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import BankSelectionModal from '../../../components/transfer/bank-selection-modal';
 import ConfirmTransferModal from '../../../components/transfer/confirm-transfer-modal';
 import TransferSuccessModal from '../../../components/transfer/transfer-success-modal';
@@ -26,16 +26,25 @@ const COLORS = {
 
 
 const TransferScreen = () => {
+
+  
+   // get the data passed from select beneficiary page using useLocalSearchParams
+   const params = useLocalSearchParams();
+   const {receiver, receiver_bank,receiver_account, bank_id} = params; // distructure the params to get individual values
+
+
     //  Access user data and updater function from context
     const { user, setUser } = useContext(UserContext);
   const [selectedMode, setSelectedMode] = useState('Other Bank');
   const [showBankModal, setShowBankModal] = useState(false);
-  const [selectedBank, setSelectedBank] = useState(null); // Stores the selected bank object { id, name }
-  const [saveBeneficiary, setSaveBeneficiary] = useState(false);
+  // Initialize selectedBank with receiver_bank if available, otherwise null
+  const [selectedBank, setSelectedBank] = useState(receiver_bank ? { name: receiver_bank, id: bank_id } : null);
+  const [saveBeneficiary, setSaveBeneficiary] = useState(false); // Reset saveBeneficiary when authenticating new bank details
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pin, setPin] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [receiverName, setReceiverName] = useState("");
+  // Initialize receiverName with receiver if available
+  const [receiverName, setReceiverName] = useState(receiver || "");
   const [isLoading, setIsLoading] = useState(false);
   const [bankSearchQuery, setBankSearchQuery] = useState(''); // New state for bank search
   const [transectionHistory, setTransectionHistory] = useState([{
@@ -48,14 +57,13 @@ const TransferScreen = () => {
                     description: "",
                     date: "", }]); // State to hold transfer history data
 
- 
   // this hold the all the transfer  value as an objecet   
+  // Initialize transferDetails with receiver_account if available
   const [transferDetails, setTransferDetails] = useState({
-    account_number: '',
+    account_number: receiver_account || '',
     amount: '',
     description: '',
-    
-  })
+  });
 
   // this hold all the transfer error as an object
   const [errors, setErrors] = useState({
@@ -67,14 +75,21 @@ const TransferScreen = () => {
 
   const router = useRouter();
 
+   
     // this Function handles the Authentication of User Transfer
     const handleAuthenticateBankDetails = async () => {
       
       // empty error state and set is loading to be true
-      setReceiverName(''); // Clear previous receiver name before attempting new authentication
+      // Clear previous receiver name before attempting new authentication, but only if it's not coming from params
+      if (!receiver) {
+        setReceiverName('');
+      }
       setErrors({account_number: '',amount: '',description: '',bank_id: '',});
       setIsLoading(true);
       setSaveBeneficiary(false); // Reset saveBeneficiary when looking up account
+      
+      // Ensure selectedBank has an ID if it was initialized from params with only a name
+      const bankIdToSend = selectedBank?.id || (selectedBank?.name === receiver_bank ? null : null); // You might need a more robust way to get the ID if it's crucial for this API call
 
         try {
 
@@ -84,7 +99,7 @@ const TransferScreen = () => {
                   account_number: transferDetails.account_number,
                   amount: transferDetails.amount,
                   description: transferDetails.description,
-                  bank_id: selectedBank?.id,
+                  bank_id: bankIdToSend,
              });
 
             const  responseData = response.data;
@@ -186,7 +201,9 @@ const TransferScreen = () => {
     const handleAccountLookup = async () => {
       
       // empty error state and set is loading to be true
-      setReceiverName(''); // Clear previous receiver name before attempting new authentication
+      if (!receiver) { // Only clear if not pre-filled from params
+        setReceiverName(''); // Clear previous receiver name before attempting new authentication
+      }
       setErrors({account_number: '',amount: '',description: '',bank_id: '',});
       setIsLoading(true);
       setSaveBeneficiary(false); // Reset saveBeneficiary when authenticating new bank details
@@ -467,7 +484,7 @@ const TransferScreen = () => {
 
     </SafeAreaView>
   );
-};
+}; 
 
 
 

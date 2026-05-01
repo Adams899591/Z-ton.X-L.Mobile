@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\DisableBiometricController;
 use App\Http\Controllers\Auth\LoginBiometricController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\User\SaveTransfer\SavePaymentController;
+use App\Http\Controllers\User\SelectBeneficiary\SelectBeneficiaryController;
 use App\Http\Controllers\User\Transfer\AuthenticateBankDetailsController;
 use App\Http\Controllers\User\Transfer\ConfirmUserTransferController;
 use App\Http\Controllers\User\Transfer\SaveBeneficiaryController;
@@ -43,6 +44,12 @@ Route::prefix("user")->group(function () {
 Route::prefix("save-transfer")->group(function(){
    Route::post("save-payment/{userId}", [SavePaymentController::class, "SaveUserPayment"]);
    Route::delete("delete-payment/{paymentId}", [SavePaymentController::class, "deletePayment"]);
+});
+
+// handles select-beneficiary inside user folder
+Route::prefix("select-beneficiary")->group(function () {
+    Route::post("fetch-beneficiaries/{userId}", [SelectBeneficiaryController::class, "fetchBeneficiaries"]);
+    // Route::post("select-beneficiary/{userId}", [TransferController::class, "selectBeneficiary"]);
 });
 
 // handles transfer inside the user folder

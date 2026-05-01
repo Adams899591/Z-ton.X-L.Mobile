@@ -18,7 +18,7 @@ const COLORS = {
 const BankSelectionModal = ({styles,showBankModal, setShowBankModal, bankSearchQuery, setBankSearchQuery,selectedBank, setSelectedBank}) => {
 
   const [bankList, setBankList] = useState([{ id: '', name: '' }]);
-  
+   
   // fetch banks from API
   useEffect(() => {
      const fetchBanks = async () => {

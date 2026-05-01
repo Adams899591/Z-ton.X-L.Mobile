@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -23,35 +24,75 @@ const COLORS = {
   lightGray: "#F3F4F6",
 };
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import axios from 'axios';
+import { API_URL } from '../../server/config';
+import { UserContext } from '../../UserContext';
 
-// Sample data for saved beneficiaries
-const SAVED_TRANSFERS = [
-  { id: '1', name: 'Usman Adams', bank: 'Z-ton Bank', account: '0123456789', type: 'Z-ton Bank' },
-  { id: '2', name: 'Grace Ojo', bank: 'Zenith Bank', account: '2098765432', type: 'Other Bank' },
-  { id: '3', name: 'Savings Account', bank: 'Z-ton Bank', account: '0011223344', type: 'Own Accounts' },
-  { id: '4', name: 'Babatunde John', bank: 'Access Bank', account: '0142356789', type: 'Other Bank' },
-];
 
 const SelectBeneficiary = () => {
+  //  Access user data and updater function from context
+  const { user, setUser } = useContext(UserContext);
   const [searchQuery, setSearchQuery] = useState('');
-  const [beneficiaries, setBeneficiaries] = useState(SAVED_TRANSFERS);
+  const [beneficiaries, setBeneficiaries] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedBeneficiary, setSelectedBeneficiary] = useState(null);
 
+  // Fetch beneficiaries when the component mounts or when the user changes
+  useEffect(() => {
+   if(!user) return
+     
+   const handlesFetchUserBeneficiaries = async () => {
+       setIsLoading(true);
+       try {
+            const response = await axios.post(`${API_URL}/select-beneficiary/fetch-beneficiaries/${user.id}`);
+            const responseData = response.data;
+            
+            if (responseData.status == "success") {
+                  const data = responseData.user;
+                  
+                  // Map backend fields to the format expected by your FlatList
+                  const formattedBeneficiaries = data.map(item => ({
+                    id: item.id.toString(),
+                    name: item.receiver_name,
+                    bank: item.receiver_bank,
+                    account: item.receiver_account,
+                    bank_id: item.bank_id // This is the ID we resolved in the controller
+                  }));
+                  
+                  setBeneficiaries(formattedBeneficiaries);
+              
+            }
+       } catch (error) {
+        console.log(error);
+        
+       } finally {
+        setIsLoading(false);
+       }
+   }
+
+   handlesFetchUserBeneficiaries();
+  }, [user])
+  
+
+
+
+
   const handleSelect = (item) => {
-    setSelectedBeneficiary(item);
+    setSelectedBeneficiary(item); 
     
     // Navigate to the transfer page with the selected data
     router.push({
       pathname: '/(drawer)/(tabs)/transfer', // Replace', // Adjust this path to your actual transfer page
-      params: {
+      params: { // Pass the selected beneficiary details as query parameters
         receiver: item.name,
         receiver_bank: item.bank,
-        receiver_account: item.account
+        receiver_account: item.account,
+        bank_id: item.bank_id,
       }
     });
   };
 
- 
+  // Function to handle deletion of a beneficiary
   const handleDelete = (id) => {
     Alert.alert(
       "Delete Beneficiary",
@@ -87,12 +128,14 @@ const SelectBeneficiary = () => {
     );
   };
 
+  // Function to render each beneficiary item in the list
   const renderItem = ({ item }) => (
     <Swipeable
       renderRightActions={(progress, dragX) => renderRightActions(item.id, progress, dragX)}
       friction={2} // How much the swipeable will move with a swipe
       rightThreshold={80} // How far the swipeable must be swiped to open to reveal actions
     >
+      {/* Beneficiary Item */}
       <TouchableOpacity style={styles.beneficiaryItem} activeOpacity={0.7} onPress={() => handleSelect(item)}>
         <View style={styles.iconContainer}>
           <Ionicons name="person-circle-outline" size={28} color={COLORS.gold} />
@@ -106,6 +149,7 @@ const SelectBeneficiary = () => {
     </Swipeable>
   );
 
+  // Filter beneficiaries based on search query (search by name or account number)
   const filteredData = beneficiaries.filter(item => 
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     item.account.includes(searchQuery)
@@ -138,19 +182,26 @@ const SelectBeneficiary = () => {
       </View>
 
       {/* Beneficiary List */}
-      <FlatList
-        data={filteredData}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={60} color={COLORS.lightGray} />
-            <Text style={styles.emptyText}>No saved beneficiaries found.</Text>
-          </View>
-        }
-      />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.gold} />
+          <Text style={styles.loadingText}>Loading beneficiaries...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredData}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="people-outline" size={60} color={COLORS.lightGray} />
+              <Text style={styles.emptyText}>No saved beneficiaries found.</Text>
+            </View>
+          }
+        />
+      )}
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -221,6 +272,15 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 12,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 50,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: COLORS.gray,
+    fontSize: 14,
+  },
 });
-
-

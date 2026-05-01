@@ -14,7 +14,7 @@ const COLORS = { // Assuming COLORS is defined globally or imported
 
 const BeneficiaryTransferToggle = ({styles,user, saveBeneficiary, setSaveBeneficiary, receiverName, selectedBank,transferDetails}) => {
   
-  // Function to save Beneficiary
+  // Function to save Beneficiary 
   const handlesavedBeneficiary = async () => {
      try {
         const response = await axios.post(`${API_URL}/transfer/save-beneficiary`, {
