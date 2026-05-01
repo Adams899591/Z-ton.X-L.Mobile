@@ -30,4 +30,17 @@ class SelectBeneficiaryController extends Controller
 
        return response()->json(["status" => "success", "user" => $data]);
     }
+
+    // Function to deleteBeneficiary 
+    public function deleteBeneficiary($beneficiaryId){
+        $beneficiary = Beneficiary::find($beneficiaryId);
+        
+        if ($beneficiary) {
+            $beneficiary->delete();
+            return response()->json(["status" => "success", "message" => "Beneficiary deleted successfully"]);
+        }
+
+        // Return a JSON 404 if the beneficiary doesn't exist in the database
+        return response()->json(["status" => "error", "message" => "Beneficiary not found"], 404);
+    }
 }

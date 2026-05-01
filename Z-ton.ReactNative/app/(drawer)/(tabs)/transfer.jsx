@@ -73,7 +73,7 @@ const TransferScreen = () => {
     bank_id: '',
   });
 
-  const router = useRouter();
+  const router = useRouter(); 
 
    
     // this Function handles the Authentication of User Transfer

@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, Modal, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, Modal, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Contacts from 'expo-contacts';
+import * as Haptics from 'expo-haptics';
+import MobileOperatorsSelection from '../../../components/airtime/mobile-operators-selection';
+import ConfirmAirtimeModal from '../../../components/airtime/confirm-airtime-modal';
+import AirtimeSuccessModal from '../../../components/airtime/airtime-success-modal';
+import MobileNumberInput from '../../../components/airtime/mobile-number-Input';
 
 const COLORS = {
   black: "#000000",
@@ -13,7 +19,7 @@ const COLORS = {
 
 const AirtimeScreen = () => {
 
-  const [selectedOperator, setSelectedOperator] = useState('MTN');
+ 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [amount, setAmount] = useState('');
   const [isScheduled, setIsScheduled] = useState(false);
@@ -21,39 +27,12 @@ const AirtimeScreen = () => {
   // Modal & PIN States
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedOperator, setSelectedOperator] = useState('MTN');
 
-  // Handle number press for PIN input
-  const handleNumberPress = (num) => {
-    if (pin.length < 4 && !isLoading) {
-      setPin(prev => prev + num);
-    }
-  };
 
-  // Handle backspace for PIN input
-  const handleBackspace = () => {
-    if (!isLoading) {
-      setPin(pin.slice(0, -1));
-    }
-  };
 
-  const handleTopUp = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowConfirmModal(false);
-      setShowSuccessModal(true);
-      setPin('');
-    }, 3000);
-  };
 
-  const operators = [
-    { id: 'MTN', name: 'MTN', color: '#FFCC00' },
-    { id: 'GLO', name: 'Glo', color: '#00FF00' },
-    { id: '9MOBILE', name: '9mobile', color: '#006600' },
-    { id: 'AIRTEL', name: 'Airtel', color: '#FF0000' },
-  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -69,44 +48,21 @@ const AirtimeScreen = () => {
           <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
         </TouchableOpacity>
 
-        {/* Mobile Operator Selection */}
-        <Text style={styles.label}>Select Mobile Operator</Text>
-        <View style={styles.operatorRow}>
-          {operators.map((op) => (
-            <TouchableOpacity 
-              key={op.id} 
-              style={[
-                styles.operatorItem, 
-                selectedOperator === op.id && styles.selectedOperatorItem
-              ]}
-              onPress={() => setSelectedOperator(op.id)}
-            >
-              <View style={[styles.operatorIcon, { backgroundColor: op.color }]}>
-                <Text style={styles.operatorInitial}>{op.name[0]}</Text>
-              </View>
-              <Text style={styles.operatorText}>{op.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Mobile Operator Selection .props */}
+        <MobileOperatorsSelection
+         styles={styles}
+         setSelectedOperator={setSelectedOperator}
+         selectedOperator={selectedOperator}
+         showConfirmModal={showConfirmModal}
+         setShowConfirmModal={setShowConfirmModal}
+        />
 
-        {/* Mobile Number Input */}
-        <View style={styles.inputGroup}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Mobile Number</Text>
-            <TouchableOpacity style={styles.contactTrigger}>
-              <Ionicons name="person-add-outline" size={16} color={COLORS.gold} />
-              <Text style={styles.contactText}>Select from contacts</Text>
-            </TouchableOpacity>
-          </View>
-          <TextInput 
-            style={styles.input}
-            placeholder="e.g. 08012345678"
-            placeholderTextColor={COLORS.gray}
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            keyboardType="numeric"
-          />
-        </View>
+        {/* Mobile Number Input  .props*/}
+        <MobileNumberInput
+           styles={styles}
+           phoneNumber={phoneNumber}
+           setPhoneNumber={setPhoneNumber}
+        />
         
         {/* Amount Input */}
         <View style={styles.inputGroup}>
@@ -147,120 +103,27 @@ const AirtimeScreen = () => {
 
       </ScrollView>
 
-      {/* Confirm Top-up Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showConfirmModal}
-        onRequestClose={() => setShowConfirmModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.confirmModalContent}>
-            <View style={styles.confirmHeader}>
-              <Text style={styles.confirmTitle}>Confirm Top-up</Text>
-              <TouchableOpacity onPress={() => { setShowConfirmModal(false); setPin(''); }}>
-                <Ionicons name="close" size={24} color={COLORS.black} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.confirmBody}>
-              <Text style={styles.confirmSubtext}>You are about to top up:</Text>
-              <View style={styles.staticDetailBox}>
-                <Text style={styles.staticName}>{phoneNumber || "Enter Number"}</Text>
-                <Text style={styles.staticAccount}>{selectedOperator} Network</Text>
-              </View>
-
-              <View style={styles.modalHorizontalDivider} />
-
-              <Text style={styles.enterPinLabel}>Enter PIN</Text>
-              
-              <View style={styles.pinDisplayRow}>
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={COLORS.gold} />
-                ) : (
-                  [1, 2, 3, 4].map((_, index) => (
-                    <View 
-                      key={index} 
-                      style={[
-                        styles.pinDot, 
-                        pin.length > index && styles.pinDotFilled
-                      ]} 
-                    />
-                  ))
-                )}
-              </View>
-
-              <View style={styles.keypadContainer}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                  <TouchableOpacity 
-                    key={num} 
-                    style={[styles.keypadButton, isLoading && { opacity: 0.5 }]}
-                    disabled={isLoading}
-                    onPress={() => handleNumberPress(num.toString())}
-                  >
-                    <Text style={styles.keypadButtonText}>{num}</Text>
-                  </TouchableOpacity>
-                ))}
-                <View style={styles.keypadButton} />
-                <TouchableOpacity 
-                  style={[styles.keypadButton, isLoading && { opacity: 0.5 }]}
-                  disabled={isLoading}
-                  onPress={() => handleNumberPress('0')}
-                >
-                  <Text style={styles.keypadButtonText}>0</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.keypadButton, isLoading && { opacity: 0.5 }]}
-                  disabled={isLoading}
-                  onPress={handleBackspace}
-                >
-                  <Ionicons name="backspace-outline" size={24} color={COLORS.black} />
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity 
-                style={[styles.modalTransferButton, (pin.length < 4 || isLoading) && styles.disabledButton]}
-                disabled={pin.length < 4 || isLoading}
-                onPress={handleTopUp}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color={COLORS.white} />
-                ) : (
-                  <Text style={styles.modalTransferButtonText}>Confirm & Pay</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Success Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={showSuccessModal}
-        onRequestClose={() => setShowSuccessModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.successModalContent}>
-            <View style={styles.successIconContainer}>
-              <Ionicons name="checkmark-circle" size={100} color={COLORS.gold} />
-            </View>
-            
-            <Text style={styles.successTitle}>Top-up Successful</Text>
-            <Text style={styles.successMessage}>
-              Your airtime purchase of <Text style={{ fontWeight: 'bold', color: COLORS.black }}>${amount || '0.00'}</Text> for {phoneNumber} was successful.
-            </Text>
-
-            <TouchableOpacity 
-              style={styles.successCloseButton}
-              onPress={() => setShowSuccessModal(false)}
-            >
-              <Text style={styles.successCloseButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Confirm Airtime Modal  .props*/}
+      <ConfirmAirtimeModal
+       styles={styles}
+       phoneNumber={phoneNumber}
+       selectedOperator={selectedOperator}
+       showConfirmModal={showConfirmModal}
+       setShowConfirmModal={setShowConfirmModal}
+       setShowSuccessModal={setShowSuccessModal}
+       isLoading={isLoading}
+       setIsLoading={setIsLoading}
+      />
+ 
+      {/* Airtime Success Modal */}
+      <AirtimeSuccessModal
+       styles={styles} 
+       showSuccessModal={showSuccessModal}
+       setShowSuccessModal={setShowSuccessModal}
+       amount={amount}
+       phoneNumber={phoneNumber}
+       selectedOperator={selectedOperator}
+      />
     </SafeAreaView>
   );
 };

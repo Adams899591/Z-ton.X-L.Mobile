@@ -31,8 +31,9 @@ class UserFactory extends Factory
             'account_type' => $this->faker->randomElement(['Savings Account', 'Current Account', 'Fixed Deposit']),
             'currency' => 'USD',
             'status' => $this->faker->randomElement(['Active', 'Inactive', 'Suspended']),
-            'phone' => $this->faker->phoneNumber(),
+            'phone' => $this->faker->numerify('##########'), // 10 digits
             'account_number' => $this->faker->numerify('##########'), // 10 digits
+            "network_id" => \App\Models\Network::inRandomOrder()->first()->id ?? 1, // Pick random existing network
             'bvn' => $this->faker->numerify('###########'), // 11 digits
             'nin' => $this->faker->numerify('###########'), // 11 digits
             'password' => Hash::make('password'),

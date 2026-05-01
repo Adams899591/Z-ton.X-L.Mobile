@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 const COLORS = {
   black: "#000000",
@@ -78,6 +79,7 @@ const SelectBeneficiary = () => {
 
 
   const handleSelect = (item) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedBeneficiary(item); 
     
     // Navigate to the transfer page with the selected data
@@ -92,6 +94,7 @@ const SelectBeneficiary = () => {
     });
   };
 
+  
   // Function to handle deletion of a beneficiary
   const handleDelete = (id) => {
     Alert.alert(
@@ -101,7 +104,20 @@ const SelectBeneficiary = () => {
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
-          onPress: () => setBeneficiaries(prevData => prevData.filter(item => item.id !== id)),
+          onPress: async () => {
+            try {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              // Send request to laravel to delete the beneficiary
+              await axios.delete(`${API_URL}/select-beneficiary/delete-beneficiary/${id}`);
+              
+              // update the ui
+              setBeneficiaries(prevData => prevData.filter(item => item.id !== id));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch (error) {
+              console.error("Error deleting beneficiary:", error);
+              Alert.alert("Error", "Something went wrong while deleting the beneficiary.");
+            }
+          },
           style: "destructive",
         },
       ]
@@ -128,7 +144,7 @@ const SelectBeneficiary = () => {
     );
   };
 
-  // Function to render each beneficiary item in the list
+   // Function to render each beneficiary item in the list
   const renderItem = ({ item }) => (
     <Swipeable
       renderRightActions={(progress, dragX) => renderRightActions(item.id, progress, dragX)}

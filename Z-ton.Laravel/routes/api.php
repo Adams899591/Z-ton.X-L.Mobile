@@ -49,7 +49,7 @@ Route::prefix("save-transfer")->group(function(){
 // handles select-beneficiary inside user folder
 Route::prefix("select-beneficiary")->group(function () {
     Route::post("fetch-beneficiaries/{userId}", [SelectBeneficiaryController::class, "fetchBeneficiaries"]);
-    // Route::post("select-beneficiary/{userId}", [TransferController::class, "selectBeneficiary"]);
+    Route::delete("delete-beneficiary/{beneficiaryId}", [SelectBeneficiaryController::class, "deleteBeneficiary"]);
 });
 
 // handles transfer inside the user folder
