@@ -4,6 +4,8 @@ use App\Http\Controllers\Auth\BiometricSetUpController;
 use App\Http\Controllers\Auth\DisableBiometricController;
 use App\Http\Controllers\Auth\LoginBiometricController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\User\Airtime\FetchNetworkController;
+use App\Http\Controllers\User\Airtime\PurchaseAirtimeController;
 use App\Http\Controllers\User\SaveTransfer\SavePaymentController;
 use App\Http\Controllers\User\SelectBeneficiary\SelectBeneficiaryController;
 use App\Http\Controllers\User\Transfer\AuthenticateBankDetailsController;
@@ -50,6 +52,12 @@ Route::prefix("save-transfer")->group(function(){
 Route::prefix("select-beneficiary")->group(function () {
     Route::post("fetch-beneficiaries/{userId}", [SelectBeneficiaryController::class, "fetchBeneficiaries"]);
     Route::delete("delete-beneficiary/{beneficiaryId}", [SelectBeneficiaryController::class, "deleteBeneficiary"]);
+});
+
+// handles airtime inside user folder
+Route::prefix("airtime")->group(function(){
+   Route::post("fetch-networks", [FetchNetworkController::class,"fetchNetwork"]);
+   Route::post("purchase-airtime/{userId}", [PurchaseAirtimeController::class,"purchaseAirtime"]);
 });
 
 // handles transfer inside the user folder

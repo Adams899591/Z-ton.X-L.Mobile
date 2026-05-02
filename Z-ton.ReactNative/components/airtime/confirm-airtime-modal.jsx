@@ -3,6 +3,8 @@ import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, Tex
 import { Ionicons } from '@expo/vector-icons';
 import * as Contacts from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
+import axios from 'axios';
+import { API_URL } from '../../app/server/config';
 const COLORS = {
   black: "#000000",
   gold: "#B8860B",
@@ -12,7 +14,7 @@ const COLORS = {
   lightGray: "#F3F4F6",
 };
 
-const ConfirmAirtimeModal = ({styles,phoneNumber,selectedOperator,isLoading,setIsLoading,showConfirmModal,setShowConfirmModal,setShowSuccessModal}) => {
+const ConfirmAirtimeModal = ({styles,phoneNumber,selectedOperator,amount,userId,isLoading,setIsLoading,showConfirmModal,setShowConfirmModal,setShowSuccessModal}) => {
 
    const [pin, setPin] = useState('');
 
@@ -30,15 +32,32 @@ const ConfirmAirtimeModal = ({styles,phoneNumber,selectedOperator,isLoading,setI
     }
   };
 
-   // 
-  const handleTopUp = () => {
+  const handleTopUp = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const response = await axios.post(`${API_URL}/airtime/purchase-airtime/${userId}`, {
+        network_id: selectedOperator,
+        phone_number: phoneNumber,
+        amount: amount,
+        pin: pin // Assuming you'll want to verify PIN in the future
+      });
+
+      if (response.data.status === "success") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setShowConfirmModal(false);
+        setShowSuccessModal(true);
+        setPin('');
+      } else {
+        Alert.alert("Transaction Failed", response.data.message || "Unable to complete purchase.");
+      }
+    } catch (error) {
+      console.log("Airtime Purchase Error:", error);
+      const errorMessage = error.response?.data?.message || "Server connection error.";
+      Alert.alert("Error", errorMessage);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
       setIsLoading(false);
-      setShowConfirmModal(false);
-      setShowSuccessModal(true);
-      setPin('');
-    }, 3000);
+    }
   };
   
   return (

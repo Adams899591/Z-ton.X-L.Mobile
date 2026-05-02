@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, Modal, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Contacts from 'expo-contacts';
 
 const COLORS = {
   black: "#000000",
@@ -12,7 +13,7 @@ const COLORS = {
   lightGray: "#F3F4F6",
 };
 
-const MobileNumberInput = ({styles,phoneNumber,setPhoneNumber}) => {
+const MobileNumberInput = ({styles,phoneNumber,setPhoneNumber,error,phone_number}) => {
 
     // Function to trigger native contact selection from the user mobile
     const handleSelectContact = async () => {
@@ -58,6 +59,7 @@ const MobileNumberInput = ({styles,phoneNumber,setPhoneNumber}) => {
                 onChangeText={setPhoneNumber}
                 keyboardType="numeric"
               />
+              {error.phone_number ? <Text style={{color: 'red', marginTop: 5}}>{error.phone_number}</Text> : null}
             </View>
     </>
   )

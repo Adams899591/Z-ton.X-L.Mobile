@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, Modal, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Contacts from 'expo-contacts';
@@ -7,6 +7,9 @@ import MobileOperatorsSelection from '../../../components/airtime/mobile-operato
 import ConfirmAirtimeModal from '../../../components/airtime/confirm-airtime-modal';
 import AirtimeSuccessModal from '../../../components/airtime/airtime-success-modal';
 import MobileNumberInput from '../../../components/airtime/mobile-number-Input';
+import { UserContext } from '../../UserContext';
+import axios from 'axios';
+import { API_URL } from '../../server/config';
 
 const COLORS = {
   black: "#000000",
@@ -19,7 +22,8 @@ const COLORS = {
 
 const AirtimeScreen = () => {
 
- 
+  //  Access user data and updater function from context
+  const { user, setUser } = useContext(UserContext);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [amount, setAmount] = useState('');
   const [isScheduled, setIsScheduled] = useState(false);
@@ -28,22 +32,82 @@ const AirtimeScreen = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedOperator, setSelectedOperator] = useState('MTN');
+  const [selectedOperator, setSelectedOperator] = useState("MTN");
+  const [error, setErrors] = useState({
+      phone_number: "",
+      amount: "",
+  });
 
 
+ // Function to handle airtime purchase
+  const handlePurchaseAirtime = async () => {
+       setErrors({ phone_number: "", amount: "" });
+       setIsLoading(true);
+
+       try {
+            const response = await axios.post(`${API_URL}/airtime/purchase-airtime/${user.id}`, {
+              network_id: selectedOperator,
+              phone_number: phoneNumber,
+              amount: amount
+            });
+
+            const responseData = response.data;
+
+            if (responseData.status === "success") {  
+               setShowSuccessModal(true);
+            } else if (responseData.errors) {
+               // Handle case where server returns 200 but has validation errors
+               setErrors({
+                 phone_number: responseData.errors.phone_number?.[0] || "",
+                 amount: responseData.errors.amount?.[0] || ""
+               });
+               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            } else {
+               Alert.alert("Transaction Failed", responseData.message || "Unable to complete purchase.");
+            }
+
+       } catch (err) { // renamed from error to err to avoid shadowing state
+                  const data = err.response?.data;
+                 
+                   if (data?.errors) { // check if there are validation errors in the response
+                     setErrors(prev => ({
+                       ...prev,
+                       phone_number: data.errors.phone_number?.[0] || "",
+                       amount: data.errors.amount?.[0] || ""
+                     }));
+                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                     
+                     // If there's a network_id error but no field to show it, alert it
+                     if (data.errors.network_id && !data.errors.amount && !data.errors.phone_number) {
+                        Alert.alert("Error", data.errors.network_id[0]);
+                     }
+                   } else {
+                     // other errors (e.g. connection issues)
+                     const message = data?.message || "An error occurred. Please try again.";
+                     Alert.alert("Error", message);
+                   } 
+       
+       
+          } finally { // reset loading state after the login process is complete, regardless of success or failure
+            setIsLoading(false);
+          }
+  }
+
+
+  
 
 
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        
+          
         {/* Account Selection */}
-        <Text style={styles.label}>Select Account</Text>
+        <Text style={styles.label}>Select Account</Text>  
         <TouchableOpacity style={styles.accountBox}>
           <View>
-            <Text style={styles.accountNumber}>0123456789</Text>
-            <Text style={styles.accountBalance}>Balance: $1,234.56</Text>
+            <Text style={styles.accountNumber}>{user.account_number}</Text>
+            <Text style={styles.accountBalance}>Balance: ${user.balance}</Text>
           </View>
           <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
         </TouchableOpacity>
@@ -53,8 +117,6 @@ const AirtimeScreen = () => {
          styles={styles}
          setSelectedOperator={setSelectedOperator}
          selectedOperator={selectedOperator}
-         showConfirmModal={showConfirmModal}
-         setShowConfirmModal={setShowConfirmModal}
         />
 
         {/* Mobile Number Input  .props*/}
@@ -62,6 +124,8 @@ const AirtimeScreen = () => {
            styles={styles}
            phoneNumber={phoneNumber}
            setPhoneNumber={setPhoneNumber}
+           error={error}
+           phone_number={error.phone_number}
         />
         
         {/* Amount Input */}
@@ -75,6 +139,7 @@ const AirtimeScreen = () => {
             onChangeText={setAmount}
             keyboardType="numeric"
           />
+          {error.amount ? <Text style={{color: 'red', marginTop: 5}}>{error.amount}</Text> : null}
         </View>
 
         {/* Schedule Toggle */}
@@ -93,8 +158,12 @@ const AirtimeScreen = () => {
 
         {/* Action Buttons */}
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.continueButton} onPress={() => setShowConfirmModal(true)}>
-            <Text style={styles.continueButtonText}>CONTINUE</Text>
+          <TouchableOpacity style={styles.continueButton} onPress={() => handlePurchaseAirtime()}>
+            {isLoading ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <Text style={styles.continueButtonText}>CONTINUE</Text>
+            )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.fingerprintButton}>
             <Ionicons name="finger-print" size={40} color={COLORS.gold} />
@@ -108,6 +177,8 @@ const AirtimeScreen = () => {
        styles={styles}
        phoneNumber={phoneNumber}
        selectedOperator={selectedOperator}
+       amount={amount}
+       userId={user.id}
        showConfirmModal={showConfirmModal}
        setShowConfirmModal={setShowConfirmModal}
        setShowSuccessModal={setShowSuccessModal}
@@ -115,7 +186,7 @@ const AirtimeScreen = () => {
        setIsLoading={setIsLoading}
       />
  
-      {/* Airtime Success Modal */}
+      {/* Airtime Success Modal  .props */}
       <AirtimeSuccessModal
        styles={styles} 
        showSuccessModal={showSuccessModal}

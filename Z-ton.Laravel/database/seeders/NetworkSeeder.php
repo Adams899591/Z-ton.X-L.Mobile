@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Network;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,7 @@ class NetworkSeeder extends Seeder
      */
     public function run(): void
     {
-        $operators = [
+         $operators = [
             ['name' => 'MTN', 'color' => '#FFCC00'],
             ['name' => 'Glo', 'color' => '#00FF00'],
             ['name' => '9mobile', 'color' => '#006600'],
@@ -21,14 +22,7 @@ class NetworkSeeder extends Seeder
         ];
 
         foreach ($operators as $operator) {
-            DB::table('networks')->updateOrInsert(
-                ['name' => $operator['name']],
-                [
-                    'color' => $operator['color'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+            Network::create($operator);
         }
     }
 }
