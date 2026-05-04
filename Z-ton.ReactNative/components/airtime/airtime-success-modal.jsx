@@ -14,7 +14,18 @@ const COLORS = {
   lightGray: "#F3F4F6",
 };
 
-const AirtimeSuccessModal = ({styles, showSuccessModal, setShowSuccessModal, amount, phoneNumber, selectedOperator}) => {
+const AirtimeSuccessModal = ({styles, showSuccessModal, setShowSuccessModal, amount, phoneNumber, selectedOperator,setPhoneNumber,setAmount}) => {
+ 
+
+
+  // Function to handle closing the success modal and resetting the form
+ function handleCloseSuccessModal() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setAmount('');
+    setPhoneNumber('');
+    setShowSuccessModal(false);
+  }
+ 
   return (
      <>
         {/* Airtime Success Modal */}
@@ -37,7 +48,7 @@ const AirtimeSuccessModal = ({styles, showSuccessModal, setShowSuccessModal, amo
      
                  <TouchableOpacity 
                    style={styles.successCloseButton}
-                   onPress={() => setShowSuccessModal(false)}
+                   onPress={() => handleCloseSuccessModal()}
                  >
                    <Text style={styles.successCloseButtonText}>Close</Text>
                  </TouchableOpacity>

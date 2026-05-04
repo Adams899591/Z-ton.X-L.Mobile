@@ -116,6 +116,12 @@ function CustomDrawerContent(props) {
             onPress={() => router.push('/(drawer)/profile&security')}
             labelStyle={styles.drawerLabel}
           />
+           <DrawerItem
+            label="Analytics"
+            icon={({ size }) => <Ionicons name="stats-chart-outline" size={size} color={COLORS.gold} />}
+            onPress={() => router.push('/(drawer)/analytics')}
+            labelStyle={styles.drawerLabel}
+          />
           <DrawerItem
             label="Live Chat"
             icon={({ size }) => <Ionicons name="chatbubble-outline" size={size} color={COLORS.gold} />}

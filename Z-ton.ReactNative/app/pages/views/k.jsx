@@ -1,18 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, TextInput, Switch, Modal, FlatList, StatusBar, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  SafeAreaView,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  ImageBackground,
+  Modal,
+  Alert,
+  ActivityIndicator,
+  Animated,
+  Vibration,
+} from 'react-native'; 
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
-import BankSelectionModal from '../../../components/transfer/bank-selection-modal';
-import ConfirmTransferModal from '../../../components/transfer/confirm-transfer-modal';
-import TransferSuccessModal from '../../../components/transfer/transfer-success-modal';
-import * as SecureStore from 'expo-secure-store';
-import axios from 'axios';
-import * as LocalAuthentication from 'expo-local-authentication';
-import * as Haptics from 'expo-haptics';
-import { API_URL } from '../../server/config';
-import { useContext } from 'react';
-import { UserContext } from '../../UserContext';
-import BeneficiaryTransferToggle from '../../../components/transfer/beneficiary-transfer-toggle';
+import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 
 const COLORS = {
   black: "#000000",
@@ -21,758 +28,690 @@ const COLORS = {
   white: "#FFFFFF",
   darkGray: "#1F2937",
   lightGray: "#F3F4F6",
+  userBubble: "#1F2937",
+  supportBubble: "#F3F4F6",
 };
 
+const MOCK_MESSAGES = [
+  {
+    id: '1',
+    text: "Hello! Welcome to Z-ton X-L Support. How can we assist you today?",
+    sender: 'support',
+    timestamp: '09:00 AM',
+    type: 'text',
+  },
+  {
+    id: '2',
+    text: "I'm having trouble with my recent card transaction.",
+    sender: 'user',
+    timestamp: '09:01 AM',
+    type: 'text',
+  },
+];
 
+const PlaybackWaveform = ({ isPlaying, isUser }) => {
+  const anims = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
 
-const TransferScreen = () => {
-    //  Access user data and updater function from context
-    const { user, setUser } = useContext(UserContext);
-  const [selectedMode, setSelectedMode] = useState('Other Bank');
-  const [showBankModal, setShowBankModal] = useState(false);
-  const [selectedBank, setSelectedBank] = useState(null); // Stores the selected bank object { id, name }
-  const [saveBeneficiary, setSaveBeneficiary] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pin, setPin] = useState('');
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [receiverName, setReceiverName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [bankSearchQuery, setBankSearchQuery] = useState(''); // New state for bank search
-  const [transectionHistory, setTransectionHistory] = useState([{
-                    reference: "",
-                    sender: "",
-                    sender_account: "",
-                    receiver: "",
-                    receiver_bank: "",
-                    amount: "",
-                    description: "",
-                    date: "", }]); // State to hold transfer history data
-
-  // this hold the all the transfer  value as an objecet   
-  const [transferDetails, setTransferDetails] = useState({
-    account_number: '',
-    amount: '',
-    description: '',
-    
-  })
-
-  // this hold all the transfer error as an object
-  const [errors, setErrors] = useState({
-    account_number: '',
-    amount: '',
-    description: '',
-    bank_id: '',
-  });
-
-  const router = useRouter();
-
-
-
-   // use 
-   const params = useLocalSearchParams();
-   const {receiver, receiver_bank,receiver_account} = params;
-
-   if (!receiver && !receiver_bank && !receiver_account) {
-  
-      const [transferDetails, setTransferDetails] = useState({
-        account_number: receiver_account,
-        amount: '',
-        description: '', 
-      })
-
-      setReceiverName(receiver);
-      setSelectedBank(receiver_bank)
-   }
-
-
-   
-    // this Function handles the Authentication of User Transfer
-    const handleAuthenticateBankDetails = async () => {
-      
-      // empty error state and set is loading to be true
-      setReceiverName(''); // Clear previous receiver name before attempting new authentication
-      setErrors({account_number: '',amount: '',description: '',bank_id: '',});
-      setIsLoading(true);
-      setSaveBeneficiary(false); // Reset saveBeneficiary when looking up account
-
-        try {
-
-            // Send request to laravel
-             const response = await axios.post(`${API_URL}/transfer/authenticateBankDetails/${user.id}`,{
-                  // send the input data to laravel
-                  account_number: transferDetails.account_number,
-                  amount: transferDetails.amount,
-                  description: transferDetails.description,
-                  bank_id: selectedBank?.id,
-             });
-
-            const  responseData = response.data;
-             if (responseData.status == "success") {
-                setReceiverName(responseData.receiver_name); // Set the receiver name on successful authentication
-                setShowConfirmModal(true)
-             }
-
-        } catch (error) { // handle errors from the API or network issues
-                   const data = error.response?.data; // Safely extract response data if it exists
-                  
-                    // validation error from Laravel
-                    if (data?.errors) { // check if there are validation errors in the response
-                      setErrors({
-                        account_number: data.errors.account_number?.[0] || "",
-                        amount: data.errors.amount?.[0] || "",
-                        description: data.errors.description?.[0] || "",
-                        bank_id: data.errors.bank_id?.[0] || "",
-                      });
-                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                    } else {
-                      // other errors (e.g. connection issues)
-                      const message = data?.message || "Connection failed. Something went wrong.";
-                      Alert.alert("Failed", message);
-                    } 
-        
-        
-           } finally { // reset loading state after the login process is complete, regardless of success or failure
-             setIsLoading(false);
-           }
+  useEffect(() => {
+    if (isPlaying) {
+      const animations = anims.map((anim, i) =>
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim, { toValue: 1, duration: 400 + i * 100, useNativeDriver: true }),
+            Animated.timing(anim, { toValue: 0, duration: 400 + i * 100, useNativeDriver: true }),
+          ])
+        )
+      );
+      Animated.parallel(animations).start();
+    } else {
+      anims.forEach((anim) => anim.stopAnimation(() => anim.setValue(0)));
     }
+  }, [isPlaying]);
 
-    // Function to handle Biometric Transfer
-    const handleBiometricTransfer = async () => {
-      // 1. Validation Check: Ensure user has met the validation (receiver name exists)
-      if (!receiverName || !transferDetails.amount || !transferDetails.account_number) {
-          Alert.alert("Validation Incomplete", "Please ensure account details are validated and amount is entered before using biometrics.");
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          return;
-      }
+  return (
+    <View style={styles.audioWaveformPlaceholder}>
+      {anims.map((anim, i) => (
+        <Animated.View
+          key={i}
+          style={[
+            styles.waveBar,
+            {
+              height: 10 + i * 3,
+              backgroundColor: isUser ? COLORS.gold : COLORS.darkGray,
+              transform: [{ scaleY: isPlaying ? anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.4] }) : 1 }],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+};
 
+const LiveChatScreen = () => {
+  const [messages, setMessages] = useState(MOCK_MESSAGES);
+  const [inputText, setInputText] = useState('');
+  const flatListRef = useRef();
+  
+  // Audio & Video States
+  const [recording, setRecording] = useState(null); // Used purely for UI feedback (red mic)
+  const recordingInstance = useRef(null); // Synchronous ref for the hardware object
+  const isHoldingMic = useRef(false); // Synchronous ref to track press state
+  const timerRef = useRef(null); // Timer reference for recording duration
+  const [isVideoCallActive, setIsVideoCallActive] = useState(false);
+  const [isVoiceCallActive, setIsVoiceCallActive] = useState(false);
+
+  // Call management states
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [callStatus, setCallStatus] = useState('Connecting...');
+  const [callDuration, setCallDuration] = useState(0);
+  const callTimerRef = useRef(null);
+
+  const [playingId, setPlayingId] = useState(null);
+  const soundInstance = useRef(null);
+
+  // Animation & Timer States
+  const [recordingTime, setRecordingTime] = useState(0);
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const waveAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+
+  // Pre-initialize permissions and audio mode on mount for instant response
+  useEffect(() => {
+    (async () => {
       try {
-          // 2. Check if Biometrics is enabled in Secure Storage (Local Verification)
-          // const biometricEnabled = await SecureStore.getItemAsync('biometric_token');
-          const biometricEnabled = await SecureStore.getItemAsync('biometric_token');
+        await Audio.requestPermissionsAsync();
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+        // Setup audio mode once so it doesn't delay the first recording
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      } catch (err) {
+        console.error("Initialization error:", err);
+      }
+    })();
 
-          if (!biometricEnabled ) {
-              Alert.alert("Biometrics Not Set Up", "Please enable fingerprint authentication in your profile settings before using this feature.");
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              return;
-          }
-
-          // 3. Check if hardware supports biometrics
-          const hasHardware = await LocalAuthentication.hasHardwareAsync();
-          const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-
-          if (!hasHardware || !isEnrolled) {
-              Alert.alert("Biometrics Not Available", "Please enable biometrics in your device settings.");
-              return;
-          }
-
-          // 3. Trigger Biometric Authentication
-          const auth = await LocalAuthentication.authenticateAsync({
-              promptMessage: `Authorize transfer of $${transferDetails.amount} to ${receiverName}`,
-              fallbackLabel: 'Use Passcode',
-          });
-
-          if (auth.success) {
-              setIsLoading(true);
-              // 4. Send request to the new Biometric Transfer Controller
-              const response = await axios.post(`${API_URL}/transfer/biometric-transfer`, {
-                  user_id: user.id,
-                  account_number: transferDetails.account_number,
-                  amount: transferDetails.amount,
-                  description: transferDetails.description,
-                  bank_id: selectedBank?.id,
-                  bank_name: selectedBank?.name
-              });
-
-              if (response.data.status === "success") {
-                  setTransectionHistory([response.data.transaction]);
-                  setShowSuccessModal(true);
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              } else {
-                  Alert.alert("Transfer Failed", response.data.message);
-              }
-          }
-      } catch (error) {
-          // console.error("Biometric Error:", error);
-          const message = error.response?.data?.message || "An error occurred during biometric transfer.";
-          Alert.alert("Error", message);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } finally {
-          setIsLoading(false);
+    return () => {
+      if (soundInstance.current) {
+        soundInstance.current.unloadAsync();
       }
     };
+  }, []);
 
-    // this Function is called during useEffect
-    const handleAccountLookup = async () => {
+  // Simulation effect for both Voice and Video calls to simulate "Connecting" -> "Connected"
+  useEffect(() => {
+    let connectionTimeout;
+    const isActive = isVoiceCallActive || isVideoCallActive;
+
+    if (isActive) {
+      setCallStatus(isVoiceCallActive ? 'Ringing...' : 'Connecting...');
+      setCallDuration(0);
       
-      // empty error state and set is loading to be true
-      setReceiverName(''); // Clear previous receiver name before attempting new authentication
-      setErrors({account_number: '',amount: '',description: '',bank_id: '',});
-      setIsLoading(true);
-      setSaveBeneficiary(false); // Reset saveBeneficiary when authenticating new bank details
-
-        try {
-
-            // Send request to laravel
-             const response = await axios.post(`${API_URL}/transfer/authenticateBankDetails/${user.id}`,{
-                  // send the input data to laravel
-                  account_number: transferDetails.account_number,
-                  amount: "100",
-                  description: transferDetails.description,
-                  bank_id: selectedBank?.id,
-             });
-
-            const  responseData = response.data;
-             if (responseData.status == "success") {
-                setReceiverName(responseData.receiver_name); // Set the receiver name on successful authentication
-
-                setErrors({}); // empty all error state if Recipant is found
-             }
-
-        } catch (error) { // handle errors from the API or network issues
-                   const data = error.response?.data; // Safely extract response data if it exists
-                  
-                    // validation error from Laravel
-                    if (data?.errors) { // check if there are validation errors in the response
-                      setErrors({
-                        account_number: data.errors.account_number?.[0] || "",
-                        amount: data.errors.amount?.[0] || "",
-                        description: data.errors.description?.[0] || "",
-                        bank_id: data.errors.bank_id?.[0] || "",
-                      });
-                    } else {
-                      // other errors (e.g. connection issues)
-                      const message = data?.message || "Connection failed. Something went wrong.";
-                      Alert.alert("Failed", message);
-                    } 
-        
-        
-           } finally { // reset loading state after the login process is complete, regardless of success or failure
-             setIsLoading(false);
-           }
+      connectionTimeout = setTimeout(() => {
+        setCallStatus('Connected');
+        callTimerRef.current = setInterval(() => {
+          setCallDuration(prev => prev + 1);
+        }, 1000);
+      }, 2500);
+    } else {
+      if (callTimerRef.current) clearInterval(callTimerRef.current);
+      setIsMuted(false);
+      setIsSpeakerOn(true);
+      setIsVideoMuted(false);
     }
 
-  // Run only when selectedBank or account_number changes 
-  useEffect(() => {
-    if (!selectedBank || !transferDetails?.account_number || transferDetails.account_number.length < 9) return;
-      handleAccountLookup(); 
-  }, [selectedBank, transferDetails.account_number]);
+    return () => {
+      if (connectionTimeout) clearTimeout(connectionTimeout);
+      if (callTimerRef.current) clearInterval(callTimerRef.current);
+    };
+  }, [isVoiceCallActive, isVideoCallActive]);
+
+  // Helper to format recording time (00:00)
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Starts the "boom boom" wave animation
+  const startWaveAnimation = useCallback(() => {
+    const animations = waveAnims.map((anim, i) => 
+      Animated.loop(Animated.sequence([Animated.timing(anim, { toValue: 1, duration: 300 + (i * 100), useNativeDriver: true }), Animated.timing(anim, { toValue: 0, duration: 300 + (i * 100), useNativeDriver: true })]))
+    );
+    Animated.parallel(animations).start();
+  }, [waveAnims]);
+
+  // Handles sending standard text messages
+  const sendMessage = () => {
+    if (inputText.trim().length === 0) return;
+
+    const newMessage = {
+      id: Date.now().toString(),
+      text: inputText,
+      sender: 'user',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      type: 'text',
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    setInputText('');
+  };
+
+  // Opens the professional video call overlay
+  const handleVideoCall = () => {
+    setIsVideoCallActive(true);
+  };
+
+  // Opens the voice call overlay
+  const handleVoiceCall = () => {
+    setIsVoiceCallActive(true);
+  };
+
+  // Handles image selection from the device gallery
+  const handleImagePicker = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const newMessage = {
+          id: Date.now().toString(),
+          uri: result.assets[0].uri,
+          sender: 'user',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: 'image',
+        };
+        setMessages(prev => [...prev, newMessage]);
+      }
+    } catch (err) {
+      Alert.alert("Error", "Could not access gallery.");
+    }
+  };
+
+  // Starts the audio recording process
+  const startRecording = async () => {
+    isHoldingMic.current = true; // Mark that user is holding the button
+    try {
+      // Ensure we only start if the user is still holding (prevents ghost recordings)
+      if (!isHoldingMic.current) return;
+
+      // Create and start the recording immediately
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      
+      // Save to Ref so stopRecording can access it even if state hasn't updated
+      recordingInstance.current = newRecording;
+      setRecording(true); // UI feedback
+      setRecordingTime(0);
+      
+      // Start Pulse Animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 0, duration: 1000, useNativeDriver: true }),
+        ])
+      ).start();
+
+      // Start Waveform Animation
+      startWaveAnimation();
+
+      // Vibration feedback
+      if (Platform.OS !== 'web') Vibration.vibrate(50);
+
+      timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
+
+      // Double-check: if user released during the async setup, stop it now
+      if (!isHoldingMic.current) {
+        await stopRecording();
+      }
+    } catch (err) {
+      console.error('Failed to start recording', err);
+    }
+  };
+
+  // Stops the audio recording and adds it to the chat
+  const stopRecording = async () => {
+    isHoldingMic.current = false; // Mark that user has released
+    
+    // If initialization hasn't finished, we can't stop yet
+    if (!recordingInstance.current) {
+      setRecording(null);
+      return;
+    }
+
+    // Stop UI and animations
+    if (timerRef.current) clearInterval(timerRef.current);
+    pulseAnim.setValue(0);
+    waveAnims.forEach(a => a.setValue(0));
+
+    try {
+      const rInstance = recordingInstance.current;
+      recordingInstance.current = null; // Clear ref immediately to prevent race conditions
+      setRecording(null); // Reset UI
+      
+      // Stop hardware and get URI
+      await rInstance.stopAndUnloadAsync();
+      const uri = rInstance.getURI();
+
+      const newMessage = {
+        id: Date.now().toString(),
+        uri: uri,
+        sender: 'user',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: 'audio',
+      };
+      setMessages(prev => [...prev, newMessage]);
+    } catch (error) {
+      console.error("Failed to stop recording:", error);
+      setRecording(null);
+    }
+  };
   
+  // Helper to play back audio messages in the chat
+  const playAudio = async (item) => {
+    try {
+      // If we are already playing a sound
+      if (soundInstance.current) {
+        await soundInstance.current.stopAsync();
+        await soundInstance.current.unloadAsync();
+        soundInstance.current = null;
+        
+        // If the user clicked the one that was already playing, just stop it
+        if (playingId === item.id) {
+          setPlayingId(null);
+          return;
+        }
+      }
 
+      // Start playing the new sound
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: item.uri },
+        { shouldPlay: true }
+      );
+      
+      soundInstance.current = sound;
+      setPlayingId(item.id);
 
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          setPlayingId(null);
+          sound.unloadAsync();
+          soundInstance.current = null;
+        }
+      });
+    } catch (err) {
+      Alert.alert("Error", "Could not play audio.");
+    }
+  };
+
+  const renderMessage = ({ item }) => {
+    const isUser = item.sender === 'user';
+    
+    return (
+      <View style={[styles.messageWrapper, isUser ? styles.userWrapper : styles.supportWrapper]}>
+        {!isUser && (
+          <View style={styles.supportAvatar}>
+            <Ionicons name="headset" size={16} color={COLORS.white} />
+          </View>
+        )}
+        <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.supportBubble]}>
+          {item.type === 'text' && (
+            <Text style={[styles.messageText, isUser ? styles.userText : styles.supportText]}>
+              {item.text}
+            </Text>
+          )}
+          
+          {item.type === 'image' && (
+            <Image source={{ uri: item.uri }} style={styles.messageImage} resizeMode="cover" />
+          )}
+
+          {item.type === 'audio' && (
+            <TouchableOpacity onPress={() => playAudio(item)} style={styles.audioPlayer}>
+              <Ionicons 
+                name={playingId === item.id ? "pause-circle" : "play-circle"} 
+                size={32} 
+                color={isUser ? COLORS.gold : COLORS.darkGray} 
+              />
+              <PlaybackWaveform isPlaying={playingId === item.id} isUser={isUser} />
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.statusContainer}>
+            <Text style={[styles.timestamp, isUser ? styles.userTimestamp : styles.supportTimestamp]}>
+              {item.timestamp}
+            </Text>
+            {isUser && (
+              <Ionicons 
+                name="checkmark-done" 
+                size={15} 
+                color={COLORS.gold} 
+                style={styles.checkIcon} 
+              />
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Support Header */}
+      <View style={styles.header}>
+        <View style={styles.headerInfo}>
+          <View style={styles.statusDot} />
+          <View>
+            <Text style={styles.supportName}>Core Support Team</Text>
+            <Text style={styles.supportStatus}>Always active for you</Text>
+          </View>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={handleVideoCall} style={styles.actionIcon}>
+            <Ionicons name="videocam" size={24} color={COLORS.gold} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleVoiceCall} style={styles.actionIcon}>
+            <Ionicons name="call" size={24} color={COLORS.gold} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionIcon}>
+            <Ionicons name="ellipsis-vertical" size={24} color={COLORS.gray} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-      > 
-      <ScrollView contentContainerStyle={styles.content}>
-
-        {/* Top Action Row: History and Saved */}
-        <View style={styles.topActionRow}>
-          <TouchableOpacity style={styles.topActionButton} onPress={() => router.push("/pages/navigate/transfer-history")}>
-            <Ionicons name="time-outline" size={20} color={COLORS.gold} />
-            <Text style={styles.topActionText}>Transfer History</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.topActionButton}  onPress={() => router.push("/pages/navigate/saved-transfer")}>
-            <Ionicons name="save-outline" size={20} color={COLORS.gold} />
-            <Text style={styles.topActionText}>Saved Transfer</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Select Transfer Mode */}
-        <Text style={styles.sectionLabel}>Select Transfer Mode</Text>
-        <View style={styles.modeRow}>
-          {['Own Accounts', 'Z-ton Bank', 'Other Bank'].map((mode) => (
-            <TouchableOpacity 
-              key={mode} 
-              style={[
-                styles.modeItem, 
-                selectedMode === mode && styles.selectedModeItem
-              ]}
-              onPress={() => setSelectedMode(mode)}
-            >
-              <Text style={[
-                styles.modeText, 
-                selectedMode === mode && styles.selectedModeText
-              ]}>
-                {mode}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Input Fields */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Select Source Account</Text>
-          <TouchableOpacity style={styles.pickerBox}>
-            <Text style={styles.pickerText}>{user.account_number} (${user.balance})</Text>
-            <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Select Bank (Conditional for 'Other Bank' mode) */}
-        {selectedMode === "Other Bank" ? (          
-          <View style={styles.inputGroup} >
-          <Text style={styles.label}>Select Bank</Text>
-          <TouchableOpacity 
-            style={styles.pickerBox} 
-            onPress={() => setShowBankModal(true)}
-          >
-           <Text style={styles.pickerText}>{selectedBank ? selectedBank.name : "Choose Bank"}</Text>
-            <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
-          </TouchableOpacity>
-           {errors.bank_id && <Text style={styles.errorText}>{errors.bank_id}</Text>}
-        </View> )
-         : null }
-       
-
-        {/* Select Destination Account */}
-        {selectedMode !== "Own Accounts" ? (
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Select Destination Account</Text>
-            <TextInput 
-              style={styles.input}
-              placeholder="Enter account number"
-              placeholderTextColor={COLORS.gray}
-              keyboardType="numeric" // Keep numeric for account number
-              value={transferDetails.account_number}
-              onChangeText={text => {
-                setTransferDetails({...transferDetails, account_number: text});
-                setReceiverName(''); // Clear receiver name if account number is changed
-                setSaveBeneficiary(false); // Reset saveBeneficiary when account number changes
-              }}
-            />
-            {errors.account_number && <Text style={styles.errorText}>{errors.account_number}</Text>}
-          </View>
-        ) : null}
-
-        {/* Display Receiver Name if authenticated */}
-        {receiverName ? (
-          <View style={styles.receiverNameContainer}>
-            <Text style={styles.receiverNameLabel}>Transfer to:</Text>
-            <Text style={styles.receiverNameText}>{receiverName}</Text>
-          </View>
-        ) : null}
-
-        {/* Horizontal Divider */}
-        <View style={styles.horizontalDivider} />
-
-        {/* Quick Select Beneficiary */}
-        {selectedMode !== "Own Accounts" ? ( 
-        <TouchableOpacity 
-          style={styles.quickSelectRow} 
-          onPress={() => router.push("/pages/navigate/select-beneficiary")}
+        style={styles.chatContainer}
+        keyboardVerticalOffset={90}
+      >
+        {/* Added a subtle geometric pattern background like WhatsApp */}
+        <ImageBackground 
+          source={{ uri: 'https://www.transparenttextures.com/patterns/diagmonds-light.png' }} 
+          style={styles.chatBackground}
+          imageStyle={{ opacity: 0.4, tintColor: COLORS.gold }}
+          resizeMode="repeat"
         >
-          <Text style={styles.quickSelectText}>Quick Select Beneficiary? <Text style={styles.goldText}>Choose from Saved</Text></Text>
-          <Ionicons name="chevron-forward" size={16} color={COLORS.gold} />
-        </TouchableOpacity>
-        ) : null}
-
-        
-        {/* Amount Input */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Amount</Text>
-          <TextInput 
-            style={styles.input}
-            placeholder="Enter Amount"
-            placeholderTextColor={COLORS.gray}
-            keyboardType="numeric"
-            onChangeText={text=>setTransferDetails({...transferDetails,amount:text})}
-            value={transferDetails.amount}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.messageList}
+            onContentSizeChange={() => flatListRef.current.scrollToEnd()}
           />
-           {errors.amount && <Text style={styles.errorText}>{errors.amount}</Text>}
-        </View>
-        
+        </ImageBackground>
 
-       {/* Transaction Description */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Transaction Description</Text>
-          <TextInput 
-            style={styles.input}
-            placeholder="Add a note (Optional)"
-            placeholderTextColor={COLORS.gray}
-            onChangeText={text=>setTransferDetails({...transferDetails,description:text})}
-            value={transferDetails.description}
-          />
-           {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
-        </View>
-
-        {/* Save Beneficiary Transfer Toggle pass .props */}
-        <BeneficiaryTransferToggle
-          styles={styles}
-          user={user}
-          saveBeneficiary={saveBeneficiary}
-          setSaveBeneficiary={setSaveBeneficiary}
-          receiverName={receiverName}
-          selectedBank={selectedBank}
-          transferDetails={transferDetails}
-        />
-
-        {/* Footer Actions: Continue and Fingerprint */}
-        <View style={styles.footerRow}>
-           <TouchableOpacity style={styles.continueButton} onPress={() => handleAuthenticateBankDetails()}>
-            {isLoading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) :  <Text style={styles.continueButtonText}>CONTINUE</Text> }
+        {/* Input Area */}
+        <View style={styles.inputWrapper}>
+          <TouchableOpacity onPress={handleImagePicker} style={styles.attachButton} disabled={!!recording}>
+            <Ionicons name="add-circle" size={30} color={COLORS.gold} />
           </TouchableOpacity>
+          
+          <View style={styles.textInputContainer}>
+            {recording ? (
+              <View style={styles.recordingStatusContainer}>
+                <View style={styles.redDot} />
+                <Text style={styles.recordingTimer}>{formatTime(recordingTime)}</Text>
+                <View style={styles.waveContainer}>
+                  {waveAnims.map((anim, i) => (
+                    <Animated.View 
+                      key={i} 
+                      style={[styles.waveBarAnimated, { transform: [{ scaleY: anim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.5] }) }] }]} 
+                    />
+                  ))}
+                </View>
+                <Text style={styles.swipeText}>Recording...</Text>
+              </View>
+            ) : (
+              <TextInput
+                style={styles.input}
+                placeholder="Type your message..."
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+              />
+            )}
+          </View>
+
+          <View style={styles.micButtonWrapper}>
+            {/* Pulse effect behind the mic */}
+            {recording && (
+              <Animated.View style={[styles.pulseCircle, { 
+                transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.5] }) }], 
+                opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0] }) 
+              }]} />
+            )}
+            <TouchableOpacity 
+              onPressIn={startRecording} 
+              onPressOut={stopRecording}
+              style={styles.micButtonCircle}
+            >
+              <Ionicons name="mic" size={24} color={recording ? COLORS.white : COLORS.gray} />
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity 
-            style={[styles.fingerprintButton, isLoading && { opacity: 0.5 }]} 
-            onPress={handleBiometricTransfer}
-            disabled={isLoading}
+            onPress={sendMessage} 
+            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+            disabled={!inputText.trim() || !!recording}
           >
-            <Ionicons name="finger-print" size={44} color={COLORS.gold} />
+            <Ionicons name="send" size={20} color={COLORS.white} />
           </TouchableOpacity>
         </View>
-
-      </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Professional Video Call Modal Overlay */}
+      <Modal visible={isVideoCallActive} animationType="slide" transparent={false}>
+        <View style={styles.videoCallContainer}>
+          <View style={styles.remoteVideo}>
+            {callStatus !== 'Connected' && <ActivityIndicator size="large" color={COLORS.gold} />}
+            <Text style={styles.videoStatusText}>
+              {callStatus === 'Connected' ? `Connected • ${formatTime(callDuration)}` : 'Connecting to Core Supporter...'}
+            </Text>
+          </View>
+          <View style={styles.localVideoSmall}>
+            {isVideoMuted ? (
+              <Ionicons name="videocam-off" size={40} color={COLORS.gray} />
+            ) : (
+              <Ionicons name="person" size={40} color={COLORS.gray} />
+            )}
+          </View>
+          <View style={styles.videoControls}>
+            <TouchableOpacity 
+              onPress={() => setIsMuted(!isMuted)}
+              style={[styles.videoActionBtn, isMuted && { backgroundColor: COLORS.gold }]}
+            >
+              <Ionicons name={isMuted ? "mic-off" : "mic"} size={28} color={COLORS.white} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setIsVideoCallActive(false)} 
+              style={[styles.videoActionBtn, { backgroundColor: '#EF4444' }]}
+            >
+              <Ionicons name="call" size={28} color={COLORS.white} style={{ transform: [{ rotate: '135deg' }] }} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setIsVideoMuted(!isVideoMuted)}
+              style={[styles.videoActionBtn, isVideoMuted && { backgroundColor: COLORS.gold }]}
+            >
+              <Ionicons name={isVideoMuted ? "videocam-off" : "videocam"} size={28} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
+      {/* Professional Voice Call Modal Overlay */}
+      <Modal visible={isVoiceCallActive} animationType="slide" transparent={false}>
+        <View style={styles.voiceCallContainer}>
+           <View style={styles.voiceCallHeader}>
+             <Ionicons name="shield-checkmark" size={18} color={COLORS.gold} />
+             <Text style={styles.secureText}>End-to-end encrypted</Text>
+           </View>
+           
+           <View style={styles.callerInfo}>
+             <View style={styles.avatarLarge}>
+                <Ionicons name="headset" size={60} color={COLORS.white} />
+             </View>
+             {callStatus !== 'Connected' && <ActivityIndicator size="large" color={COLORS.gold} style={{ marginBottom: 15 }} />}
+             <Text style={styles.callerName}>Core Support Team</Text>
+             <Text style={styles.callStatusText}>
+               {callStatus === 'Connected' ? formatTime(callDuration) : callStatus}
+             </Text>
+           </View>
 
-
-     {/*NOTE:: THE BELOW SECTION HANDLES THE MODEL OF TRANSFER  */}
-
-      {/* Bank Selection Modal .props passing approach*/}
-      <BankSelectionModal 
-        styles={styles}
-        showBankModal={showBankModal}
-        bankSearchQuery={bankSearchQuery}
-        setBankSearchQuery={setBankSearchQuery}
-        selectedBank={selectedBank}
-        setSelectedBank={setSelectedBank}
-        setShowBankModal={setShowBankModal}
-      />
-
-      {/* Confirm Transfer Modal .props passing approach*/}
-      <ConfirmTransferModal
-        styles={styles}
-        showConfirmModal={showConfirmModal}
-        setShowConfirmModal={setShowConfirmModal}
-        pin={pin}
-        setPin={setPin}
-        isLoading={isLoading}
-        setIsLoading={setIsLoading}
-        setShowSuccessModal={setShowSuccessModal}
-        receiverName={receiverName}
-        accountNumber={transferDetails.account_number}
-        bankName={selectedBank?.name}
-        userId={user.id}
-        amount={transferDetails.amount}
-        description={transferDetails.description}
-        bankId={selectedBank?.id}
-        setTransectionHistory={setTransectionHistory}
-      />
-
-      {/*Transfer Success Modal .props accepting approach*/}
-      <TransferSuccessModal
-        styles={styles}
-        showSuccessModal={showSuccessModal}
-        setShowSuccessModal={setShowSuccessModal}
-        receiverName={receiverName}
-        accountNumber={transferDetails.account_number}
-        bankName={selectedBank?.name}
-        amount={transferDetails.amount}
-        transectionHistory={transectionHistory}
-        setTransferDetails={setTransferDetails}
-        setSelectedBank={setSelectedBank}
-        setReceiverName={setReceiverName}
-        saveBeneficiary={saveBeneficiary}
-        setSaveBeneficiary={setSaveBeneficiary}
-
-      />
-
-
+           <View style={styles.videoControls}>
+            <TouchableOpacity 
+              onPress={() => setIsSpeakerOn(!isSpeakerOn)}
+              style={[styles.videoActionBtn, !isSpeakerOn && { opacity: 0.5 }]}
+            >
+              <Ionicons name={isSpeakerOn ? "volume-high" : "volume-mute"} size={28} color={COLORS.white} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setIsVoiceCallActive(false)} 
+              style={[styles.videoActionBtn, { backgroundColor: '#EF4444' }]}
+            >
+              <Ionicons name="call" size={28} color={COLORS.white} style={{ transform: [{ rotate: '135deg' }] }} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setIsMuted(!isMuted)}
+              style={[styles.videoActionBtn, isMuted && { backgroundColor: COLORS.gold }]}
+            >
+              <Ionicons name={isMuted ? "mic-off" : "mic"} size={28} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
-}; 
+};
 
-
-
-
-
-
-export default TransferScreen
+export default LiveChatScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
-  content: { padding: 20 },
-  topActionRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: 25 
-  },
-  topActionButton: {
+  header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    width: '48%',
-  },
-  topActionText: { marginLeft: 8, fontSize: 12, fontWeight: '600', color: COLORS.black },
-  sectionLabel: { fontSize: 14, fontWeight: 'bold', color: COLORS.black, marginBottom: 15 },
-  modeRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    marginBottom: 25 
-  },
-  modeItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-    width: '31%',
-    alignItems: 'center',
-    borderRadius: 8,
-    backgroundColor: COLORS.lightGray,
-  },
-  selectedModeItem: { backgroundColor: COLORS.black },
-  modeText: { fontSize: 11, color: COLORS.black, fontWeight: '600' },
-  selectedModeText: { color: COLORS.white },
-  inputGroup: { marginBottom: 20 },
-  label: { fontSize: 13, color: COLORS.gray, marginBottom: 8, fontWeight: '500' },
-  input: {
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 10,
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: COLORS.black,
-  },
-  pickerBox: {
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 10,
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  pickerText: { fontSize: 16, color: COLORS.black, fontWeight: '500' },
-
-  horizontalDivider: {
-    height: 1,
-    backgroundColor: COLORS.lightGray,
-    marginVertical: 25, // Adjust spacing as needed
-  }, 
-  quickSelectRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: -10,
-  },
-  quickSelectText: {
-    fontSize: 13,
-    color: COLORS.gray,
-    fontWeight: '500',
-  },
-  // goldText: { color: COLORS.gold, fontWeight: 'bold' },
-  errorText:{
-    color:"red",
-    fontSize:12,
-    fontWeight:"500",
-  },
-  // Modal Styles
-  bankModalContent: {
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    maxHeight: '75%',
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.lightGray,
-  },
-  modalCloseButton: { padding: 5 },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.black,
-  },
-  modalSearchInput: {
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    margin: 15,
-    fontSize: 16,
-    color: COLORS.black,
-  },
-  bankListItem: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    paddingVertical: 12, 
-    paddingHorizontal: 20, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#F0F0F0' 
-  },
-  bankListItemText: { fontSize: 16, color: COLORS.black },
-
-  scheduleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 30,
-    paddingVertical: 10,
-  },
-  scheduleTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.black },
-  scheduleSubtitle: { fontSize: 12, color: COLORS.gray },
-  footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  continueButton: {
-    backgroundColor: COLORS.black,
-    flex: 1,
-    paddingVertical: 18,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  continueButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
-  fingerprintButton: { padding: 5 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 },
-  emptyText: { color: COLORS.gray, fontSize: 16 },
-
-  // Confirm Modal Specific Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  confirmModalContent: {
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    paddingBottom: 20,
-    minHeight: '55%',
-  },
-  confirmHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.lightGray,
-  },
-  confirmTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.black },
-  confirmBody: { padding: 15, alignItems: 'center' },
-  confirmSubtext: { fontSize: 14, color: COLORS.gray, marginBottom: 8 },
-  staticDetailBox: { alignItems: 'center', marginBottom: 10 },
-  staticName: { fontSize: 20, fontWeight: 'bold', color: COLORS.black },
-  staticAccount: { fontSize: 14, color: COLORS.gray, marginTop: 5 },
-  modalHorizontalDivider: {
-    height: 1,
-    backgroundColor: COLORS.lightGray,
-    width: '100%',
-    marginVertical: 15,
-  },
-  enterPinLabel: { fontSize: 16, fontWeight: '600', color: COLORS.black, marginBottom: 15 },
-  pinDisplayRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  pinDot: {
-    width: 15,
-    height: 15,
-    borderRadius: 7.5,
-    borderWidth: 1,
-    borderColor: COLORS.gray,
-    marginHorizontal: 15,
-  },
-  pinDotFilled: {
-    backgroundColor: COLORS.gold,
-    borderColor: COLORS.gold,
-  },
-  keypadContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    width: '80%',
-    marginBottom: 20,
-  },
-  keypadButton: {
-    width: '30%',
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  keypadButtonText: { fontSize: 24, fontWeight: '600', color: COLORS.black },
-  modalTransferButton: {
-    backgroundColor: COLORS.black,
-    paddingVertical: 16,
-    borderRadius: 12,
-    width: '100%',
-    alignItems: 'center',
-  },
-  modalTransferButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
-  disabledButton: { backgroundColor: COLORS.gray },
-
-  // Success Modal Styles
-  successModalContent: {
     backgroundColor: COLORS.white,
-    borderRadius: 25,
-    padding: 25,
-    width: '90%',
+  },
+  headerInfo: { flexDirection: 'row', alignItems: 'center' },
+  statusDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#10B981', marginRight: 10 },
+  supportName: { fontWeight: 'bold', fontSize: 16, color: COLORS.darkGray },
+  supportStatus: { fontSize: 12, color: COLORS.gray },
+  headerActions: { flexDirection: 'row' },
+  actionIcon: { marginLeft: 20 },
+  
+  chatContainer: { flex: 1 },
+  chatBackground: { flex: 1, backgroundColor: COLORS.lightGray },
+  messageList: { padding: 20 },
+  
+  messageWrapper: { flexDirection: 'row', marginBottom: 20, maxWidth: '80%' },
+  userWrapper: { alignSelf: 'flex-end' },
+  supportWrapper: { alignSelf: 'flex-start' },
+  
+  supportAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.gold,
+    justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 'auto',
-    marginTop: 'auto',
+    marginRight: 10,
+    marginTop: 5,
   },
-  successIconContainer: {
-    marginBottom: 20,
+  
+  messageBubble: { padding: 12, borderRadius: 18 },
+  userBubble: { backgroundColor: COLORS.userBubble, borderBottomRightRadius: 2 },
+  supportBubble: { backgroundColor: COLORS.supportBubble, borderBottomLeftRadius: 2 },
+  
+  messageImage: { width: 200, height: 200, borderRadius: 10, marginBottom: 5 },
+  
+  messageText: { fontSize: 15, lineHeight: 20 },
+  userText: { color: COLORS.white },
+  supportText: { color: COLORS.darkGray },
+  
+  statusContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    alignSelf: 'flex-end', 
+    marginTop: 4 
   },
-  successTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.black,
-    marginBottom: 10,
-  },
-  successMessage: {
-    fontSize: 15,
-    color: COLORS.gray,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 30,
-  },
-  successButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 15,
-  },
-  outlineButton: {
-    flex: 0.48,
-    borderWidth: 1,
-    borderColor: COLORS.gold,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  outlineButtonText: { color: COLORS.gold, fontWeight: 'bold', fontSize: 14 },
-  successCloseButton: {
-    backgroundColor: COLORS.black,
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  successCloseButtonText: { color: COLORS.white, fontWeight: 'bold', fontSize: 16 },
+  checkIcon: { marginLeft: 4 },
 
-  // New styles for receiver name display
-  receiverNameContainer: {
+  timestamp: { fontSize: 10 },
+  userTimestamp: { color: 'rgba(255,255,255,0.6)' },
+  supportTimestamp: { color: COLORS.gray },
+
+  audioPlayer: { flexDirection: 'row', alignItems: 'center', width: 150 },
+  audioWaveformPlaceholder: { flexDirection: 'row', alignItems: 'center', marginLeft: 10, flex: 1, justifyContent: 'space-between' },
+  waveBar: { width: 3, backgroundColor: COLORS.gold, borderRadius: 2 },
+
+  inputWrapper: {
     flexDirection: 'row',
+    padding: 15,
     alignItems: 'center',
-    marginBottom: 20, // Add some space below it
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
   },
-  receiverNameLabel: { fontSize: 13, color: COLORS.gray, marginRight: 8, fontWeight: '500' },
-  receiverNameText: { fontSize: 16, fontWeight: 'bold', color: COLORS.black },
+  attachButton: { marginRight: 10 },
+  textInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  input: { flex: 1, paddingVertical: 10, fontSize: 15, color: COLORS.black, maxHeight: 100 },
+  
+  // Recording UI
+  recordingStatusContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 45 },
+  redDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444', marginRight: 8 },
+  recordingTimer: { fontSize: 14, fontWeight: 'bold', color: COLORS.darkGray, marginRight: 15 },
+  waveContainer: { flexDirection: 'row', alignItems: 'center', width: 40, justifyContent: 'space-between', marginRight: 10 },
+  waveBarAnimated: { width: 3, height: 15, backgroundColor: COLORS.gold, borderRadius: 2 },
+  swipeText: { fontSize: 13, color: COLORS.gray },
+
+  micButtonWrapper: { width: 45, height: 45, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  micButtonCircle: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.lightGray },
+  pulseCircle: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: '#EF4444' },
+
+  sendButton: {
+    backgroundColor: COLORS.gold,
+    width: 40,
+    height: 45,
+    borderRadius: 22.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: { backgroundColor: COLORS.gray },
+
+  // Video Call Styles
+  videoCallContainer: { flex: 1, backgroundColor: COLORS.black, justifyContent: 'center', alignItems: 'center' },
+  remoteVideo: { flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },
+  videoStatusText: { color: COLORS.white, marginTop: 20, fontSize: 16 },
+  localVideoSmall: { position: 'absolute', top: 50, right: 20, width: 100, height: 150, backgroundColor: COLORS.darkGray, borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.gold },
+  videoControls: { position: 'absolute', bottom: 50, flexDirection: 'row', width: '100%', justifyContent: 'space-evenly' },
+  videoActionBtn: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+
+  // Voice Call Styles
+  voiceCallContainer: { flex: 1, backgroundColor: COLORS.userBubble, alignItems: 'center', paddingTop: 100 },
+  voiceCallHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 50 },
+  secureText: { color: COLORS.gray, marginLeft: 8, fontSize: 12 },
+  callerInfo: { alignItems: 'center' },
+  avatarLarge: { width: 120, height: 120, borderRadius: 60, backgroundColor: COLORS.gold, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  callerName: { color: COLORS.white, fontSize: 24, fontWeight: 'bold' },
+  callStatusText: { color: COLORS.gold, fontSize: 16, marginTop: 10 },
 });

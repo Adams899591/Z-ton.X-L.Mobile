@@ -3,6 +3,8 @@ import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, Tex
 import { Ionicons } from '@expo/vector-icons';
 import * as Contacts from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
 import MobileOperatorsSelection from '../../../components/airtime/mobile-operators-selection';
 import ConfirmAirtimeModal from '../../../components/airtime/confirm-airtime-modal';
 import AirtimeSuccessModal from '../../../components/airtime/airtime-success-modal';
@@ -85,13 +87,75 @@ const AirtimeScreen = () => {
                      // other errors (e.g. connection issues)
                      const message = data?.message || "An error occurred. Please try again.";
                      Alert.alert("Error", message);
-                   } 
-       
+                   }  
        
           } finally { // reset loading state after the login process is complete, regardless of success or failure
             setIsLoading(false);
           }
   }
+
+
+  // Function to handle Biometric Airtime Purchase
+  const handleBiometricAirtime = async () => {
+    // 1. Validation Check: Ensure phone number and amount are entered
+    if (!phoneNumber || !amount || !selectedOperator) {
+        Alert.alert("Validation Incomplete", "Please ensure phone number and amount are entered before using biometrics.");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        return;
+    }
+
+    try {
+        // 2. Check if Biometrics is enabled in Secure Storage
+        const biometricEnabled = await SecureStore.getItemAsync('biometric_token');
+
+        if (!biometricEnabled ) {
+            Alert.alert("Biometrics Not Set Up", "Please enable fingerprint authentication in your profile settings.");
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            return;
+        }
+
+        // 3. Check hardware support
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+        if (!hasHardware || !isEnrolled) {
+            Alert.alert("Biometrics Not Available", "Please enable biometrics in your device settings.");
+            return;
+        }
+
+        // 4. Trigger Biometric Authentication
+        const auth = await LocalAuthentication.authenticateAsync({
+            promptMessage: `Authorize airtime purchase of $${amount} for ${phoneNumber}`,
+            fallbackLabel: 'Use Passcode',
+        });
+
+        if (auth.success) {
+            setIsLoading(true);
+            // 5. Send request to the Biometric Airtime Controller
+            const response = await axios.post(`${API_URL}/airtime/biometric-airtime`, {
+                user_id: user.id,
+                phone_number: phoneNumber,
+                amount: amount,
+                network_id: selectedOperator,
+            });
+
+            if (response.data.status === "success") {
+                setShowSuccessModal(true);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } else {
+                Alert.alert("Purchase Failed", response.data.message);
+            }
+        }
+    } catch (err) {
+        const data = err.response?.data;
+        const message = data?.message || "An error occurred during biometric airtime purchase.";
+        Alert.alert("Error", message);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
 
 
   
@@ -165,7 +229,11 @@ const AirtimeScreen = () => {
               <Text style={styles.continueButtonText}>CONTINUE</Text>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.fingerprintButton}>
+          <TouchableOpacity 
+            style={[styles.fingerprintButton, isLoading && { opacity: 0.5 }]} 
+            onPress={handleBiometricAirtime}
+            disabled={isLoading}
+          >
             <Ionicons name="finger-print" size={40} color={COLORS.gold} />
           </TouchableOpacity>
         </View>
@@ -194,6 +262,8 @@ const AirtimeScreen = () => {
        amount={amount}
        phoneNumber={phoneNumber}
        selectedOperator={selectedOperator}
+       setAmount={setAmount}
+       setPhoneNumber={setPhoneNumber}
       />
     </SafeAreaView>
   );
