@@ -100,6 +100,11 @@ const LiveChatScreen = () => {
   const [inputText, setInputText] = useState('');
   const [selectedMessageId, setSelectedMessageId] = useState(null);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  
+  // Flag to track if the user has just clicked a reply to "jump" to an old message.
+  // When this is true, we stop the chat from automatically scrolling back to the bottom.
+  const [isJumping, setIsJumping] = useState(false);
+
   const [replyingToMessage, setReplyingToMessage] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const flatListRef = useRef();
@@ -213,9 +218,10 @@ const LiveChatScreen = () => {
     }
     
     const replyData = replyingToMessage ? { 
+      id: replyingToMessage.id, // Save the original ID so we can scroll back to it later
       text: replyingToMessage.text, 
       sender: replyingToMessage.sender,
-      type: replyingToMessage.type, // Store the type so we know if it was an image/audio reply
+      type: replyingToMessage.type,
     } : null;
 
     // If replying to something, we should clear it after sending
@@ -234,6 +240,10 @@ const LiveChatScreen = () => {
 
     setMessages(prev => [...prev, newMessage]);
     setInputText('');
+
+    // When sending a new message, we want the chat to go back to normal
+    // and scroll to the bottom, so we set jumping to false.
+    setIsJumping(false);
   };
 
   // Opens the professional video call overlay
@@ -264,6 +274,9 @@ const LiveChatScreen = () => {
           type: 'image',
         };
         setMessages(prev => [...prev, newMessage]);
+        
+        // Reset jumping so the chat follows the new image to the bottom
+        setIsJumping(false);
       }
     } catch (err) {
       Alert.alert("Error", "Could not access gallery.");
@@ -344,6 +357,9 @@ const LiveChatScreen = () => {
         type: 'audio',
       };
       setMessages(prev => [...prev, newMessage]);
+
+      // Reset jumping so the chat follows the new audio to the bottom
+      setIsJumping(false);
     } catch (error) {
       console.error("Failed to stop recording:", error);
       setRecording(null);
@@ -393,6 +409,40 @@ const LiveChatScreen = () => {
   };
 
   /**
+   * This function handles jumping back to an old message when a reply is tapped.
+   * It highlights the message and ensures the screen stays there instead of 
+   * jumping back to the bottom immediately.
+   */
+  const scrollToMessage = (messageId) => {
+    // 1. Enable jumping mode to "lock" the scroll position
+    setIsJumping(true); 
+
+    const index = messages.findIndex(m => m.id === messageId);
+    
+    if (index !== -1) {
+      // Scroll the FlatList to the specific index
+      flatListRef.current.scrollToIndex({ 
+        index, 
+        animated: true, 
+        viewPosition: 0.5 // Centers the message on the screen
+      });
+
+      // Briefly highlight the message so the user sees which one it is
+      setSelectedMessageId(messageId);
+
+      // 3. We keep the highlight and the "locked" view for 3.5 seconds.
+      // This gives the user enough time to see the original context.
+      setTimeout(() => {
+        setSelectedMessageId(null);
+        setIsJumping(false); // 4. Release the lock so normal chat behavior resumes
+      }, 3500); 
+    } else {
+      setIsJumping(false);
+      Alert.alert("Note", "The original message could not be found.");
+    }
+  };
+
+  /**
    * Handles the deletion of a message.
    * Instead of completely removing the message from the state (filtering), 
    * we mark it with 'isDeleted: true'. This allows us to show the 
@@ -416,10 +466,16 @@ const LiveChatScreen = () => {
     }
   };
 
-  // Handles adding a reaction from the selection header
+  /**
+   * Handles adding or removing a reaction from the selection header.
+   * This implements a "toggle" behavior: if the user clicks the same emoji 
+   * that is already set as a reaction for the selected message, it will be removed.
+   */
   const handleReaction = (emoji) => {
     setMessages(prev => prev.map(msg => 
-      msg.id === selectedMessageId ? { ...msg, reaction: emoji } : msg
+      msg.id === selectedMessageId 
+        ? { ...msg, reaction: msg.reaction === emoji ? null : emoji } 
+        : msg
     ));
     setSelectedMessageId(null);
   };
@@ -507,8 +563,12 @@ const LiveChatScreen = () => {
               ) : (
                 <>
                   {/* Reply Quote Container - Only rendered if message is active */}
+                  {/* We wrapped this in a TouchableOpacity so clicking it triggers the "Jump" */}
                   {item.replyTo && (
-                    <View style={[
+                    <TouchableOpacity 
+                      onPress={() => scrollToMessage(item.replyTo.id)}
+                      activeOpacity={0.7}
+                      style={[
                       styles.replyQuoteContainer, 
                       isUser ? styles.userReplyQuote : styles.supportReplyQuote
                     ]}>
@@ -523,7 +583,7 @@ const LiveChatScreen = () => {
                           {item.replyTo.type === 'text' ? item.replyTo.text : (item.replyTo.type === 'image' ? 'Image' : 'Audio')}
                         </Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   )}
 
                   {/* Render content based on type (text, image, or audio) */}
@@ -639,7 +699,18 @@ const LiveChatScreen = () => {
             renderItem={renderMessage}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.messageList}
-            onContentSizeChange={() => flatListRef.current.scrollToEnd()}
+            // This logic is key: we only auto-scroll to the end if we AREN'T currently
+            // jumping to an old message. This prevents the "snapping back to bottom" issue.
+            onContentSizeChange={() => {
+              if (!isJumping && flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: true });
+              }
+            }}
+            // This handles cases where we try to scroll to an item not yet loaded in memory
+            onScrollToIndexFailed={(info) => {
+              flatListRef.current.scrollToOffset({ offset: info.averageItemLength * info.index, animated: true });
+              setTimeout(() => flatListRef.current.scrollToIndex({ index: info.index, animated: true }), 100);
+            }}
           />
         </ImageBackground>
 

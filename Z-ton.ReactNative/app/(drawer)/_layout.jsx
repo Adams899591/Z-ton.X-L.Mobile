@@ -128,6 +128,12 @@ function CustomDrawerContent(props) {
             onPress={() => router.push('/(drawer)/live-chat')}
             labelStyle={styles.drawerLabel}
           />
+          <DrawerItem
+            label="Z-ton Ai"
+            icon={({ size }) => <Ionicons name="sparkles-outline" size={size} color={COLORS.gold} />} // Changed icon to sparkles-outline for AI
+            onPress={() => router.push('/(drawer)/ai-onboarding')} // Navigate to AI onboarding
+            labelStyle={styles.drawerLabel}
+          />
         </View>
       </DrawerContentScrollView>
 
