@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Network;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class PurchaseAirtimeController extends Controller
 {
@@ -100,15 +102,49 @@ class PurchaseAirtimeController extends Controller
                         ], 400);
                     }
 
+                    // Generate a unique request_id (Mandatory for VTpass)
+                    // Format: YYYYMMDDHHII + unique string
+                    $requestId = now()->format('YmdHi') . Str::random(5);
+
                     // Deduct the amount and return success
                     $user->decrement('balance', $request->amount);
 
-                    return response()->json([
-                        'status' => 'success',
-                        'message' => 'Airtime purchased successfully'
+                    // Generate the VTpass serviceID (e.g., mtn-airtime, airtel-airtime)
+                    $serviceID = strtolower($network->name) . '-airtime';
+
+                    // Send request to VTpass
+                    $response = Http::withHeaders([
+                        "api-key" => env('VTPASS_API_KEY'),
+                        // "public-key" => env('VTPASS_PUBLIC_KEY'),
+                        "secret-key" => env('VTPASS_SECRET_KEY'),
+                    ])->post('https://sandbox.vtpass.com/api/', [
+                        "request_id" => $requestId,
+                        "serviceID" => $serviceID,
+                        "amount" => $request->amount,
+                        "phone" => $request->phone_number,
                     ]);
 
-        } catch (\Exception $e) {
+                    $result = $response->json();
+
+                    // Check if transaction was actually successful (code '000' is success in VTpass)
+                    if ($response->successful() && isset($result['code']) && $result['code'] === '000') {
+                    return response()->json([
+                        'status' => 'success',
+                        'message' => 'Airtime purchased successfully',
+                        'data' => $result
+                    ]);
+                    }
+
+                    // If API failed, refund the user
+                    $user->increment('balance', $request->amount);
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Transaction Failed: ' . ($result['response_description'] ?? 'Invalid Credentials or Provider Error'),
+                        'error_code' => $result['code'] ?? 'unknown'
+                    ], 400);
+
+        }  catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Server Error: ' . $e->getMessage()

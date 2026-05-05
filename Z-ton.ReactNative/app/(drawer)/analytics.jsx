@@ -20,13 +20,30 @@ const screenWidth = Dimensions.get("window").width;
 const AnalyticsScreen = () => {
   const [timeframe, setTimeframe] = useState('Month');
 
+  // Mock data mapped to different timeframes
+  const timeframeData = {
+    Week: {
+      labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      data: [450, 300, 520, 210, 640, 810, 120],
+      total: "3,050"
+    },
+    Month: {
+      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      data: [1200, 1900, 1500, 2100, 1800, 2400],
+      total: "10,900"
+    },
+    Year: {
+      labels: ["2021", "2022", "2023", "2024"],
+      data: [15000, 18000, 25000, 22000],
+      total: "80,000"
+    }
+  };
+
+  // Extract data based on the current timeframe state
+  const currentPeriod = timeframeData[timeframe];
   const chartData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-    datasets: [
-      {
-        data: [1200, 1900, 1500, 2100, 1800, 2400]
-      }
-    ]
+    labels: currentPeriod.labels,
+    datasets: [{ data: currentPeriod.data }]
   };
 
   const chartConfig = {
@@ -79,7 +96,7 @@ const AnalyticsScreen = () => {
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <Text style={styles.sectionTitle}>Spending Overview</Text>
-            <Text style={styles.totalSpent}>Total: $10,900</Text>
+            <Text style={styles.totalSpent}>Total: ${currentPeriod.total}</Text>
           </View>
           
           <BarChart

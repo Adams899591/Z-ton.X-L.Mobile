@@ -55,7 +55,10 @@ const AirtimeScreen = () => {
 
             const responseData = response.data;
 
+        
+
             if (responseData.status === "success") {  
+                        console.log(responseData.data);
                setShowSuccessModal(true);
             } else if (responseData.errors) {
                // Handle case where server returns 200 but has validation errors

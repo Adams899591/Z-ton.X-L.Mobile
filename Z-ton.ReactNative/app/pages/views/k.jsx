@@ -16,6 +16,8 @@ import {
   ActivityIndicator,
   Animated,
   Vibration,
+  Clipboard,
+  Share,
 } from 'react-native'; 
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -96,6 +98,9 @@ const PlaybackWaveform = ({ isPlaying, isUser }) => {
 const LiveChatScreen = () => {
   const [messages, setMessages] = useState(MOCK_MESSAGES);
   const [inputText, setInputText] = useState('');
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState(null);
   const flatListRef = useRef();
   
   // Audio & Video States
@@ -188,6 +193,23 @@ const LiveChatScreen = () => {
   // Handles sending standard text messages
   const sendMessage = () => {
     if (inputText.trim().length === 0) return;
+
+    if (editingMessageId) {
+      // Handle Update
+      setMessages(prev => prev.map(msg => 
+        msg.id === editingMessageId
+          ? {
+              ...msg,
+              text: inputText,
+              timestamp: msg.timestamp.replace(/ \(edited\)$/, '') + ' (edited)'
+            }
+          : msg
+      ));
+      setEditingMessageId(null);
+      setInputText('');
+      setSelectedMessageId(null);
+      return;
+    }
 
     const newMessage = {
       id: Date.now().toString(),
@@ -352,78 +374,174 @@ const LiveChatScreen = () => {
     }
   };
 
+  // Handles highlighting/selecting a message (WhatsApp style)
+  const toggleMessageSelection = (id) => {
+    setSelectedMessageId(prev => (prev === id ? null : id));
+  };
+
+  // Deletes the currently highlighted message
+  const deleteMessage = () => {
+    if (selectedMessageId) {
+      setMessages(prev => prev.filter(m => m.id !== selectedMessageId));
+      setSelectedMessageId(null);
+    }
+  };
+
+  // Handles adding a reaction from the selection header
+  const handleReaction = (emoji) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === selectedMessageId ? { ...msg, reaction: emoji } : msg
+    ));
+    setSelectedMessageId(null);
+  };
+
+  // Dropdown Action Handlers
+  const handleCopy = () => {
+    const msg = messages.find(m => m.id === selectedMessageId);
+    if (msg && msg.text) {
+      Clipboard.setString(msg.text);
+      Alert.alert("Copied", "Message copied to clipboard.");
+    }
+    setIsMenuVisible(false);
+    setSelectedMessageId(null);
+  };
+
+  const handleShare = async () => {
+    const msg = messages.find(m => m.id === selectedMessageId);
+    if (msg && msg.text) {
+      try {
+        await Share.share({ message: msg.text });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    setIsMenuVisible(false);
+    setSelectedMessageId(null);
+  };
+
+  const handleEdit = () => {
+    const msg = messages.find(m => m.id === selectedMessageId);
+    if (msg && msg.type === 'text') {
+      setEditingMessageId(msg.id);
+      setInputText(msg.text);
+    }
+    setIsMenuVisible(false);
+  };
+
   const renderMessage = ({ item }) => {
     const isUser = item.sender === 'user';
+    const isSelected = selectedMessageId === item.id;
     
     return (
-      <View style={[styles.messageWrapper, isUser ? styles.userWrapper : styles.supportWrapper]}>
-        {!isUser && (
-          <View style={styles.supportAvatar}>
-            <Ionicons name="headset" size={16} color={COLORS.white} />
-          </View>
-        )}
-        <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.supportBubble]}>
-          {item.type === 'text' && (
-            <Text style={[styles.messageText, isUser ? styles.userText : styles.supportText]}>
-              {item.text}
-            </Text>
+      <TouchableOpacity 
+        onLongPress={() => toggleMessageSelection(item.id)}
+        onPress={() => selectedMessageId && setSelectedMessageId(null)}
+        activeOpacity={0.9}
+        style={[styles.messageRow, isUser ? { alignItems: 'flex-end' } : { alignItems: 'flex-start' }]}
+      >
+        <View style={[styles.messageWrapper, isUser ? styles.userWrapper : styles.supportWrapper]}>
+          {!isUser && (
+            <View style={styles.supportAvatar}>
+              <Ionicons name="headset" size={16} color={COLORS.white} />
+            </View>
           )}
           
-          {item.type === 'image' && (
-            <Image source={{ uri: item.uri }} style={styles.messageImage} resizeMode="cover" />
-          )}
+          <View>
+            <View style={[
+              styles.messageBubble, 
+              isUser ? styles.userBubble : styles.supportBubble,
+              isSelected && styles.selectedBubble
+            ]}>
+              {item.type === 'text' && (
+                <Text style={[styles.messageText, isUser ? styles.userText : styles.supportText]}>
+                  {item.text}
+                </Text>
+              )}
+              {item.type === 'image' && (
+                <Image source={{ uri: item.uri }} style={styles.messageImage} resizeMode="cover" />
+              )}
+              
+              {item.type === 'audio' && (
+                <TouchableOpacity onPress={() => playAudio(item)} style={styles.audioPlayer}>
+                  <Ionicons 
+                    name={playingId === item.id ? "pause-circle" : "play-circle"} 
+                    size={32} 
+                    color={isUser ? COLORS.gold : COLORS.darkGray} 
+                  />
+                  <PlaybackWaveform isPlaying={playingId === item.id} isUser={isUser} />
+                </TouchableOpacity>
+              )}
 
-          {item.type === 'audio' && (
-            <TouchableOpacity onPress={() => playAudio(item)} style={styles.audioPlayer}>
-              <Ionicons 
-                name={playingId === item.id ? "pause-circle" : "play-circle"} 
-                size={32} 
-                color={isUser ? COLORS.gold : COLORS.darkGray} 
-              />
-              <PlaybackWaveform isPlaying={playingId === item.id} isUser={isUser} />
-            </TouchableOpacity>
-          )}
+              <View style={styles.statusContainer}>
+                <Text style={[styles.timestamp, isUser ? styles.userTimestamp : styles.supportTimestamp]}>
+                  {item.timestamp}
+                </Text>
+                {isUser && (
+                  <Ionicons name="checkmark-done" size={14} color={COLORS.gold} style={styles.checkIcon} />
+                )}
+              </View>
 
-          <View style={styles.statusContainer}>
-            <Text style={[styles.timestamp, isUser ? styles.userTimestamp : styles.supportTimestamp]}>
-              {item.timestamp}
-            </Text>
-            {isUser && (
-              <Ionicons 
-                name="checkmark-done" 
-                size={15} 
-                color={COLORS.gold} 
-                style={styles.checkIcon} 
-              />
-            )}
+              {item.reaction && (
+                <View style={[
+                  styles.reactionBadge,
+                  isUser ? { left: -10 } : { right: -10 }
+                ]}>
+                  <Text style={styles.reactionEmoji}>{item.reaction}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Support Header */}
-      <View style={styles.header}>
-        <View style={styles.headerInfo}>
-          <View style={styles.statusDot} />
-          <View>
-            <Text style={styles.supportName}>Core Support Team</Text>
-            <Text style={styles.supportStatus}>Always active for you</Text>
-          </View>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleVideoCall} style={styles.actionIcon}>
-            <Ionicons name="videocam" size={24} color={COLORS.gold} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleVoiceCall} style={styles.actionIcon}>
-            <Ionicons name="call" size={24} color={COLORS.gold} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionIcon}>
-            <Ionicons name="ellipsis-vertical" size={24} color={COLORS.gray} />
-          </TouchableOpacity>
-        </View>
+      {/* Support Header / Message Selection Header */}
+      <View style={[styles.header, selectedMessageId && styles.selectionHeader]}>
+        {selectedMessageId ? (
+          <>
+            <TouchableOpacity onPress={() => setSelectedMessageId(null)} style={styles.headerInfo}>
+              <Ionicons name="close" size={26} color={COLORS.darkGray} />
+              <Text style={[styles.supportName, { marginLeft: 15 }]}>1 selected</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.headerActions}>
+              <View style={styles.selectionReactionRow}>
+                {['👍', '❤️', '😂', '😮', '😢'].map((emoji) => (
+                  <TouchableOpacity key={emoji} onPress={() => handleReaction(emoji)} style={styles.headerEmoji}>
+                    <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity onPress={() => setIsMenuVisible(true)} style={styles.actionIcon}>
+                <Ionicons name="ellipsis-vertical" size={24} color={COLORS.darkGray} />
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.headerInfo}>
+              <View style={styles.statusDot} />
+              <View>
+                <Text style={styles.supportName}>Core Support Team</Text>
+                <Text style={styles.supportStatus}>Always active for you</Text>
+              </View>
+            </View>
+            <View style={styles.headerActions}>
+              <TouchableOpacity onPress={handleVideoCall} style={styles.actionIcon}>
+                <Ionicons name="videocam" size={24} color={COLORS.gold} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleVoiceCall} style={styles.actionIcon}>
+                <Ionicons name="call" size={24} color={COLORS.gold} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionIcon}>
+                <Ionicons name="ellipsis-vertical" size={24} color={COLORS.gray} />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
 
       <KeyboardAvoidingView 
@@ -472,7 +590,7 @@ const LiveChatScreen = () => {
             ) : (
               <TextInput
                 style={styles.input}
-                placeholder="Type your message..."
+                placeholder={editingMessageId ? "Edit message..." : "Type your message..."}
                 value={inputText}
                 onChangeText={setInputText}
                 multiline
@@ -506,6 +624,42 @@ const LiveChatScreen = () => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Message Actions Dropdown Modal */}
+      <Modal visible={isMenuVisible} transparent animationType="fade">
+        <TouchableOpacity 
+          style={styles.menuOverlay} 
+          activeOpacity={1} 
+          onPress={() => setIsMenuVisible(false)}
+        >
+          <View style={styles.menuContainer}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleEdit}>
+              <Ionicons name="pencil-outline" size={20} color={COLORS.darkGray} />
+              <Text style={styles.menuItemText}>Edit</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.menuItem} onPress={handleCopy}>
+              <Ionicons name="copy-outline" size={20} color={COLORS.darkGray} />
+              <Text style={styles.menuItemText}>Copy</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleShare}>
+              <Ionicons name="share-outline" size={20} color={COLORS.darkGray} />
+              <Text style={styles.menuItemText}>Share</Text>
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity 
+              style={styles.menuItem} 
+              onPress={() => { deleteMessage(); setIsMenuVisible(false); }}
+            >
+              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+              <Text style={[styles.menuItemText, { color: '#EF4444' }]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Professional Video Call Modal Overlay */}
       <Modal visible={isVideoCallActive} animationType="slide" transparent={false}>
@@ -610,12 +764,16 @@ const styles = StyleSheet.create({
   supportStatus: { fontSize: 12, color: COLORS.gray },
   headerActions: { flexDirection: 'row' },
   actionIcon: { marginLeft: 20 },
-  
   chatContainer: { flex: 1 },
   chatBackground: { flex: 1, backgroundColor: COLORS.lightGray },
   messageList: { padding: 20 },
+  messageList: { paddingVertical: 20 },
   
   messageWrapper: { flexDirection: 'row', marginBottom: 20, maxWidth: '80%' },
+  messageRow: { width: '100%', paddingHorizontal: 20, paddingVertical: 6 },
+  selectedBubble: { borderColor: COLORS.gold, borderWidth: 0.5 },
+  
+  messageWrapper: { flexDirection: 'row', maxWidth: '85%' },
   userWrapper: { alignSelf: 'flex-end' },
   supportWrapper: { alignSelf: 'flex-start' },
   
@@ -633,6 +791,11 @@ const styles = StyleSheet.create({
   messageBubble: { padding: 12, borderRadius: 18 },
   userBubble: { backgroundColor: COLORS.userBubble, borderBottomRightRadius: 2 },
   supportBubble: { backgroundColor: COLORS.supportBubble, borderBottomLeftRadius: 2 },
+
+  // Selection Toolbar Styles
+  selectionHeader: { backgroundColor: COLORS.lightGray, borderBottomColor: COLORS.gold, borderBottomWidth: 1 },
+  selectionReactionRow: { flexDirection: 'row', backgroundColor: COLORS.white, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, marginRight: 10, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  headerEmoji: { paddingHorizontal: 4 },
   
   messageImage: { width: 200, height: 200, borderRadius: 10, marginBottom: 5 },
   
@@ -714,4 +877,43 @@ const styles = StyleSheet.create({
   avatarLarge: { width: 120, height: 120, borderRadius: 60, backgroundColor: COLORS.gold, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   callerName: { color: COLORS.white, fontSize: 24, fontWeight: 'bold' },
   callStatusText: { color: COLORS.gold, fontSize: 16, marginTop: 10 },
+
+  // Reaction Styles
+  reactionBadge: {
+    position: 'absolute',
+    bottom: -12,
+    backgroundColor: COLORS.white,
+    borderRadius: 15,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    zIndex: 10,
+  },
+  reactionEmoji: { fontSize: 14 },
+
+  // Dropdown Menu Styles
+  menuOverlay: { flex: 1, backgroundColor: 'transparent' },
+  menuContainer: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    width: 160,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    paddingVertical: 5,
+  },
+  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 12 },
+  menuItemText: { marginLeft: 12, fontSize: 16, color: COLORS.darkGray },
+  menuDivider: { height: 1, backgroundColor: COLORS.lightGray, marginVertical: 4 },
 });

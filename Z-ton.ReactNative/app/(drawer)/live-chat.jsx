@@ -100,6 +100,7 @@ const LiveChatScreen = () => {
   const [inputText, setInputText] = useState('');
   const [selectedMessageId, setSelectedMessageId] = useState(null);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [replyingToMessage, setReplyingToMessage] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const flatListRef = useRef();
   
@@ -197,14 +198,29 @@ const LiveChatScreen = () => {
     if (editingMessageId) {
       // Handle Update
       setMessages(prev => prev.map(msg => 
-        msg.id === editingMessageId 
-          ? { ...msg, text: inputText, timestamp: msg.timestamp + ' (edited)' } 
+        msg.id === editingMessageId
+          ? {
+              ...msg,
+              text: inputText,
+              timestamp: msg.timestamp.replace(/ \(edited\)$/, '') + ' (edited)'
+            }
           : msg
       ));
       setEditingMessageId(null);
       setInputText('');
       setSelectedMessageId(null);
       return;
+    }
+    
+    const replyData = replyingToMessage ? { 
+      text: replyingToMessage.text, 
+      sender: replyingToMessage.sender,
+      type: replyingToMessage.type, // Store the type so we know if it was an image/audio reply
+    } : null;
+
+    // If replying to something, we should clear it after sending
+    if (replyingToMessage) {
+      setReplyingToMessage(null);
     }
 
     const newMessage = {
@@ -213,6 +229,7 @@ const LiveChatScreen = () => {
       sender: 'user',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       type: 'text',
+      replyTo: replyData,
     };
 
     setMessages(prev => [...prev, newMessage]);
@@ -375,10 +392,26 @@ const LiveChatScreen = () => {
     setSelectedMessageId(prev => (prev === id ? null : id));
   };
 
-  // Deletes the currently highlighted message
+  /**
+   * Handles the deletion of a message.
+   * Instead of completely removing the message from the state (filtering), 
+   * we mark it with 'isDeleted: true'. This allows us to show the 
+   * "This message was deleted" placeholder, similar to WhatsApp.
+   */
   const deleteMessage = () => {
     if (selectedMessageId) {
-      setMessages(prev => prev.filter(m => m.id !== selectedMessageId));
+      setMessages(prev => prev.map(msg => 
+        msg.id === selectedMessageId 
+          ? { 
+              ...msg, 
+              isDeleted: true, // Mark the message as deleted
+              text: 'This message was deleted', // Set placeholder text
+              type: 'text', // Revert type to text for placeholder display
+              reaction: null, // Clear any reactions attached to the message
+              uri: null // Clear any media URI (images/audio)
+            } 
+          : msg
+      ));
       setSelectedMessageId(null);
     }
   };
@@ -424,13 +457,23 @@ const LiveChatScreen = () => {
     setIsMenuVisible(false);
   };
 
+  const handleReply = () => {
+    const msg = messages.find(m => m.id === selectedMessageId);
+    if (msg) {
+      setReplyingToMessage(msg);
+    }
+    setIsMenuVisible(false);
+    setSelectedMessageId(null);
+  };
+
   const renderMessage = ({ item }) => {
     const isUser = item.sender === 'user';
     const isSelected = selectedMessageId === item.id;
     
     return (
       <TouchableOpacity 
-        onLongPress={() => toggleMessageSelection(item.id)}
+        // Prevent selecting or long-pressing messages that are already deleted
+        onLongPress={() => !item.isDeleted && toggleMessageSelection(item.id)}
         onPress={() => selectedMessageId && setSelectedMessageId(null)}
         activeOpacity={0.9}
         style={[styles.messageRow, isUser ? { alignItems: 'flex-end' } : { alignItems: 'flex-start' }]}
@@ -443,30 +486,67 @@ const LiveChatScreen = () => {
           )}
           
           <View>
-            {item.type === 'image' && (
-              <Image source={{ uri: item.uri }} style={styles.messageImage} resizeMode="cover" />
-            )}
-            
             <View style={[
               styles.messageBubble, 
               isUser ? styles.userBubble : styles.supportBubble,
               isSelected && styles.selectedBubble
             ]}>
-              {item.type === 'text' && (
-                <Text style={[styles.messageText, isUser ? styles.userText : styles.supportText]}>
-                  {item.text}
-                </Text>
-              )}
-              
-              {item.type === 'audio' && (
-                <TouchableOpacity onPress={() => playAudio(item)} style={styles.audioPlayer}>
+              {/* If the message is deleted, we show a subdued placeholder instead of content */}
+              {item.isDeleted ? (
+                <View style={styles.deletedContainer}>
                   <Ionicons 
-                    name={playingId === item.id ? "pause-circle" : "play-circle"} 
-                    size={32} 
-                    color={isUser ? COLORS.gold : COLORS.darkGray} 
+                    name="ban-outline" 
+                    size={14} 
+                    color={isUser ? 'rgba(255,255,255,0.5)' : COLORS.gray} 
+                    style={{ marginRight: 5 }} 
                   />
-                  <PlaybackWaveform isPlaying={playingId === item.id} isUser={isUser} />
-                </TouchableOpacity>
+                  <Text style={[styles.messageText, styles.deletedText, isUser ? styles.userDeletedText : styles.supportDeletedText]}>
+                    This message was deleted
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  {/* Reply Quote Container - Only rendered if message is active */}
+                  {item.replyTo && (
+                    <View style={[
+                      styles.replyQuoteContainer, 
+                      isUser ? styles.userReplyQuote : styles.supportReplyQuote
+                    ]}>
+                      <Text style={[styles.replyQuoteSender, isUser ? styles.userReplyQuoteSender : styles.supportReplyQuoteSender]}>
+                        {item.replyTo.sender === 'user' ? 'You' : 'Support'}
+                      </Text>
+                      {/* Quoted Content Logic: Shows icons for media instead of empty text */}
+                      <View style={styles.replyContentRow}>
+                        {item.replyTo.type === 'image' && <Ionicons name="image" size={14} color={isUser ? 'rgba(255,255,255,0.6)' : COLORS.gray} style={{ marginRight: 4 }} />}
+                        {item.replyTo.type === 'audio' && <Ionicons name="mic" size={14} color={isUser ? 'rgba(255,255,255,0.6)' : COLORS.gray} style={{ marginRight: 4 }} />}
+                        <Text style={[styles.replyQuoteText, isUser ? styles.userReplyQuoteText : styles.supportReplyQuoteText]} numberOfLines={1}>
+                          {item.replyTo.type === 'text' ? item.replyTo.text : (item.replyTo.type === 'image' ? 'Image' : 'Audio')}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Render content based on type (text, image, or audio) */}
+                  {item.type === 'text' && (
+                    <Text style={[styles.messageText, isUser ? styles.userText : styles.supportText]}>
+                      {item.text}
+                    </Text>
+                  )}
+                  {item.type === 'image' && (
+                    <Image source={{ uri: item.uri }} style={styles.messageImage} resizeMode="cover" />
+                  )}
+                  
+                  {item.type === 'audio' && (
+                    <TouchableOpacity onPress={() => playAudio(item)} style={styles.audioPlayer}>
+                      <Ionicons 
+                        name={playingId === item.id ? "pause-circle" : "play-circle"} 
+                        size={32} 
+                        color={isUser ? COLORS.gold : COLORS.darkGray} 
+                      />
+                      <PlaybackWaveform isPlaying={playingId === item.id} isUser={isUser} />
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
 
               <View style={styles.statusContainer}>
@@ -563,6 +643,29 @@ const LiveChatScreen = () => {
           />
         </ImageBackground>
 
+        {/* Reply Preview Area - Shows a snippet of the message you're responding to above the input box */}
+        {replyingToMessage && (
+          <View style={styles.replyPreviewContainer}>
+            <View style={styles.replyPreviewContent}>
+              <View style={styles.replyTextContent}>
+                <Text style={styles.replySenderText}>
+                  Replying to {replyingToMessage.sender === 'user' ? 'yourself' : 'Support'}
+                </Text>
+                <View style={styles.replyContentRow}>
+                  {replyingToMessage.type === 'image' && <Ionicons name="image" size={16} color={COLORS.gray} style={{ marginRight: 5 }} />}
+                  {replyingToMessage.type === 'audio' && <Ionicons name="mic" size={16} color={COLORS.gray} style={{ marginRight: 5 }} />}
+                  <Text style={styles.replyPreviewText} numberOfLines={1}>
+                    {replyingToMessage.type === 'text' ? replyingToMessage.text : (replyingToMessage.type === 'image' ? 'Image' : 'Audio')}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => setReplyingToMessage(null)}>
+              <Ionicons name="close-circle" size={24} color={COLORS.gray} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Input Area */}
         <View style={styles.inputWrapper}>
           <TouchableOpacity onPress={handleImagePicker} style={styles.attachButton} disabled={!!recording}>
@@ -630,6 +733,11 @@ const LiveChatScreen = () => {
           onPress={() => setIsMenuVisible(false)}
         >
           <View style={styles.menuContainer}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleReply}>
+              <Ionicons name="arrow-undo-outline" size={20} color={COLORS.darkGray} />
+              <Text style={styles.menuItemText}>Reply</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.menuItem} onPress={handleEdit}>
               <Ionicons name="pencil-outline" size={20} color={COLORS.darkGray} />
               <Text style={styles.menuItemText}>Edit</Text>
@@ -913,4 +1021,41 @@ const styles = StyleSheet.create({
   menuItem: { flexDirection: 'row', alignItems: 'center', padding: 12 },
   menuItemText: { marginLeft: 12, fontSize: 16, color: COLORS.darkGray },
   menuDivider: { height: 1, backgroundColor: COLORS.lightGray, marginVertical: 4 },
+
+  // Reply Quote inside bubble
+  replyQuoteContainer: {
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+  },
+  userReplyQuote: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderLeftColor: COLORS.gold,
+  },
+  supportReplyQuote: {
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderLeftColor: COLORS.darkGray,
+  },
+  replyQuoteSender: { fontSize: 12, fontWeight: 'bold', marginBottom: 2 },
+  userReplyQuoteSender: { color: COLORS.gold },
+  supportReplyQuoteSender: { color: COLORS.darkGray },
+  replyQuoteText: { fontSize: 13, opacity: 0.8 },
+  userReplyQuoteText: { color: COLORS.white },
+  supportReplyQuoteText: { color: COLORS.darkGray },
+
+  replyContentRow: { flexDirection: 'row', alignItems: 'center' },
+
+  // Reply Preview above input
+  replyPreviewContainer: { flexDirection: 'row', alignItems: 'center', padding: 10, backgroundColor: COLORS.white, borderTopWidth: 1, borderTopColor: COLORS.lightGray, borderLeftWidth: 4, borderLeftColor: COLORS.gold, paddingLeft: 15 },
+  replyPreviewContent: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  replyTextContent: { marginLeft: 0 },
+  replySenderText: { fontSize: 12, fontWeight: 'bold', color: COLORS.gold },
+  replyPreviewText: { fontSize: 14, color: COLORS.gray },
+
+  // Styles for the "Deleted Message" state
+  deletedContainer: { flexDirection: 'row', alignItems: 'center' },
+  deletedText: { fontStyle: 'italic' },
+  userDeletedText: { color: 'rgba(255,255,255,0.5)' },
+  supportDeletedText: { color: COLORS.gray },
 });
