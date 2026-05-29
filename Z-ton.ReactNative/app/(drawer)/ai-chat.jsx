@@ -95,11 +95,10 @@ const AIChatScreen = () => {
 
   // Function to simulate AI's response based on user input
   const simulateAIResponse = async (userText) => {
-    console.log(userText);
-    
     setIsTyping(true);  // Artificial delay to simulate "thinking"
     
-
+    console.log(userText); // Log the user text to verify it's being passed correctly
+    
 
       try {
 
@@ -112,33 +111,67 @@ const AIChatScreen = () => {
               const responseData = response.data;
 
               if (responseData.status === "success") {
-                console.log(responseData.aiResponse);  //  Note this now hold the Ai reply
-              }
-              
-              // Create a new message object for the AI response
-              const newAiMessage = {
-                id: Date.now().toString(),
-                text: responseData.aiResponse,  // this now will display the ai response to users 
-                sender: 'ai',
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // Current time for timestamp
-                type: 'text',
-              };
+                const fullResponse = responseData.aiResponse;
+                const aiMessageId = Date.now().toString();
 
-              setMessages(prev => [...prev, newAiMessage]);
-              setIsTyping(false);
-              // Scroll to the end of the chat to show the new message
-              flatListRef.current?.scrollToEnd({ animated: true });
-        
+                console.log(fullResponse); // Log the AI response to verify it's being received correctly
+                
+                // 1. Add the AI message entry with empty text first
+                setMessages(prev => [...prev, {
+                  id: aiMessageId,
+                  text: "", 
+                  sender: 'ai',
+                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  type: 'text',
+                  isTyping: true, // Mark this specific message as currently typing
+                }]);
+
+                setIsTyping(false); // Stop the "thinking" indicator
+
+                // 2. Loop through the text and update the message character by character
+                for (let i = 1; i <= fullResponse.length; i++) {
+                  await new Promise(resolve => setTimeout(resolve, 5)); // Reduced delay to 5ms for even faster typing
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === aiMessageId ? { ...msg, text: fullResponse.substring(0, i) } : msg
+                  ));
+                  flatListRef.current?.scrollToEnd({ animated: true });
+                }
+
+                // 3. Mark typing as complete to remove the cursor icon
+                setMessages(prev => prev.map(msg => 
+                  msg.id === aiMessageId ? { ...msg, isTyping: false } : msg
+                ));
+              }
 
         } catch (error) {
             console.log('Axios error:', error.response?.data || error.message);
+            
+            // Add an error message to the chat so the user can see the Retry button
+            const errorMessage = {
+                id: Date.now().toString(),
+                text: "Oops! I couldn't process that. Please try again.",
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                type: 'error', // This tells the UI to show the Retry button
+                failedUserText: userText, // Stores the message to send again if they click Retry
+            };
+            setMessages(prev => [...prev, errorMessage]);
         }finally{
           setIsTyping(false);
         }
-      
+  };
 
-
-
+  // Function to handle retrying a failed AI response
+  const handleRetry = (messageIdToRetry) => {
+    const messageToRetry = messages.find(msg => msg.id === messageIdToRetry);
+    if (messageToRetry && messageToRetry.type === 'error' && messageToRetry.failedUserText) {
+      // You might want to visually indicate that this message is being retried
+      // For now, we'll just resend the original text. A new AI response will appear.
+      simulateAIResponse(messageToRetry.failedUserText);
+      // Optionally, remove the old error message or mark it as retried:
+      // setMessages(prev => prev.filter(msg => msg.id !== messageIdToRetry));
+    }
+    
 
 
 
@@ -266,7 +299,20 @@ const AIChatScreen = () => {
 
 
           {/* Render text message if text exists */}
-          {!!item.text && <Text style={[styles.messageText, isAi ? styles.aiText : styles.userText]}>{item.text}</Text>}
+          {(!!item.text || (isAi && item.isTyping)) && (
+            <Text style={[styles.messageText, isAi ? styles.aiText : styles.userText]}>
+              {item.text}
+              {isAi && item.isTyping && <Text style={styles.cursor}> ●</Text>}
+            </Text>
+          )}
+
+          {/* Display a Retry button for error messages */}
+          {item.type === 'error' && (
+            <TouchableOpacity onPress={() => handleRetry(item.id)} style={styles.retryButton}>
+              <Ionicons name="reload-outline" size={16} color={COLORS.gold} style={{ marginRight: 5 }} />
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          )}
           
           {/* Status container for timestamp and checkmark */}
           <View style={styles.statusContainer}>
@@ -454,6 +500,7 @@ const styles = StyleSheet.create({
   
   messageText: { fontSize: 15, lineHeight: 22 },
   aiText: { color: COLORS.darkGray },
+  cursor: { color: COLORS.black, fontSize: 16 }, // Style for the typing cursor icon
   userText: { color: COLORS.white },
   
   messageImage: { width: 200, height: 200, borderRadius: 10, marginBottom: 5 },
@@ -522,4 +569,21 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sendButtonDisabled: { backgroundColor: COLORS.gray, elevation: 0 },
+
+  // New styles for retry button
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 15,
+    backgroundColor: COLORS.darkGray, // A slightly different background for the button
+    alignSelf: 'flex-start', // Align left for AI messages
+  },
+  retryButtonText: {
+    color: COLORS.gold,
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
 });

@@ -37,9 +37,8 @@ class AiResponseController extends Controller
             'HTTP-Referer' => config('app.url'), // Optional, for OpenRouter rankings
             'X-Title' => config('app.name'),    // Optional
         ])->timeout(60)->post("https://openrouter.ai/api/v1/chat/completions", [
-            // 'model' => 'openrouter/free',
-            "model" => "google/gemma-4-31b-it:free",
-            // "model" => "google/gemini-3.5-flash",
+            'model' => 'openrouter/free',
+            // "model" => "google/gemma-4-31b-it:free",
             'messages' => [
                 ['role' => 'user', 'content' => $prompt]
             ]
