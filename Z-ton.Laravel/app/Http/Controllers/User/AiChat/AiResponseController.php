@@ -34,16 +34,8 @@ class AiResponseController extends Controller
             'HTTP-Referer' => config('app.url'), // Optional, for OpenRouter rankings
             'X-Title' => config('app.name'),    // Optional
         ])->timeout(60)->post("https://openrouter.ai/api/v1/chat/completions", [
-            'model' => 'openrouter/free',
-            // "model" => "google/gemma-4-31b-it:free",
-
-            // "model" => "meta-llama/llamma-3.1-8b-instruct:free",
-            // "model" => "meta-llama/llamma-3.1-70b-instruct:free",
-            // "model" => "mistralai/mistral-7b-instruct:free",
-            // "model" => "mistralai/mixtral-8x7b-instruct:free",
-            // "model" => "google/gemma-2-9-9b-b-it:free",
-            // "model" => "google/gemma-7b-it:free",
-
+            // 'model' => 'openrouter/free',
+            "model" => "google/gemma-4-31b-it:free",
 
             'messages' => [
                 ['role' => 'user', 'content' => $prompt]
@@ -55,7 +47,7 @@ class AiResponseController extends Controller
             $data = $response->json();
             $aiText = $data['choices'][0]['message']['content'] ?? 'AI responded, but no text was found.';
 
-            // Use a transaction to ensure both records are saved together
+            // // Use a transaction to ensure both records are saved together
             DB::transaction(function () use ($user, $prompt, $aiText) {
                 // Insert the User message into database
                 AiChatMessage::create([

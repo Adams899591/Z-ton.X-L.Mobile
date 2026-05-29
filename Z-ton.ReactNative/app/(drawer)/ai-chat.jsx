@@ -165,47 +165,13 @@ const AIChatScreen = () => {
   const handleRetry = (messageIdToRetry) => {
     const messageToRetry = messages.find(msg => msg.id === messageIdToRetry);
     if (messageToRetry && messageToRetry.type === 'error' && messageToRetry.failedUserText) {
-      // You might want to visually indicate that this message is being retried
-      // For now, we'll just resend the original text. A new AI response will appear.
+      // Remove the old error message from the chat list first 
+      // so that error messages don't pile up when retrying.
+      setMessages(prev => prev.filter(msg => msg.id !== messageIdToRetry));
+      
       simulateAIResponse(messageToRetry.failedUserText);
-      // Optionally, remove the old error message or mark it as retried:
-      // setMessages(prev => prev.filter(msg => msg.id !== messageIdToRetry));
     }
     
-
-
-
-
-
-    // // Artificial delay to simulate "thinking"
-    // setTimeout(() => {
-    //   // Determine AI response based on keywords in user's text
-    //   let aiResponse = "I'm analyzing your request. As an AI assistant, I can help you with balance inquiries or transaction history.";
-
-    //   const text = userText?.toLowerCase() || "";
-      
-    //   if (text.includes('balance')) {
-    //     aiResponse = "Your current account balance across all linked Z-ton accounts is $12,450.50.";
-    //   } else if (text.includes('card')) {
-    //     aiResponse = "I can see you have one active Visa card ending in 4582. Would you like to view its limits or freeze it?";
-    //   } else if (text.includes('hello') || text.includes('hi')) {
-    //     aiResponse = "Hello! I'm here and ready to help you with your Z-ton X-L banking needs.";
-    //   }
-
-    //   // Create a new message object for the AI response
-    //   const newAiMessage = {
-    //     id: Date.now().toString(),
-    //     text: aiResponse,
-    //     sender: 'ai',
-    //     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // Current time for timestamp
-    //     type: 'text',
-    //   };
-
-    //   setMessages(prev => [...prev, newAiMessage]);
-    //   setIsTyping(false);
-    //   // Scroll to the end of the chat to show the new message
-    //   flatListRef.current?.scrollToEnd({ animated: true });
-    // }, 1500);
   };
 
 

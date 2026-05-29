@@ -6,5 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class AiChatMessage extends Model
 {
-    //
+     /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+
+    protected $guarded = [];
+  
+
 }
