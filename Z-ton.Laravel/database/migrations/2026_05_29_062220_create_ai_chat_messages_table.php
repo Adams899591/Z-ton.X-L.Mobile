@@ -22,7 +22,7 @@ return new class extends Migration
             $table->enum('type', ['text', 'image', 'audio'])->default('text');
             
             // text_content: Stores the raw text for "text" type messages or prompts
-            $table->text('text')->nullable();
+            $table->text('messages')->nullable();
             
             // Media Columns (Supabase Integration)
             // Storing the full URI for playback/rendering and public_id for storage management
