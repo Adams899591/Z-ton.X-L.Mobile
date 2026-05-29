@@ -13,31 +13,6 @@ const COLORS = {
 
 const CardsScreen = () => {
 
-   useEffect(() => {
-      const sendResponce = async () => {
-           try {
- 
-
-             // Adding a prompt to the request body. API_URL is expected to already include '/api'
-             const response =  await axios.post(`${API_URL}/ai/test`, {
-                prompt: "https://qpopsjtjprtaouaasozv.supabase.co/storage/v1/object/public/Dev-Adams-Portfolio/project_files/adams.jpg can you see the main image it self?"   
-             });
-             const data = response.data;
- 
-                if (data.status === "success") {
-                  console.log(data.result);
-                  
-                }
- 
-           } catch (error) {
-               console.log('Axios error:', error.response?.data || error.message);
-           }
-      }
-
-        sendResponce()
-   }, )
-   
-
 
 
   return (

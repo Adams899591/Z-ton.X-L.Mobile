@@ -22,6 +22,8 @@ import ImagePickerAttachment from '../../components/ai-chat/image';
 import TextInputContainer from '../../components/ai-chat/text-input-container';
 import SendTextButton from '../../components/ai-chat/send-text-button';
 import { UserContext } from '../UserContext';
+import axios from 'axios';
+import { API_URL } from '../server/config';
 
 // Define a consistent color palette for the app
 const COLORS = {
@@ -35,9 +37,6 @@ const COLORS = {
   userBubble: "#1F2937",
 };
 
-  // Access user data and updater function from context
-  const { user, setUser } = useContext(UserContext); 
-  
 // message the user get to see once they enter the page 
 const INITIAL_MESSAGES = [
   {
@@ -52,6 +51,10 @@ const INITIAL_MESSAGES = [
  
 // Main AI Chat Screen Component
 const AIChatScreen = () => {
+
+  // Access user data and updater function from context
+  const { user, setUser } = useContext(UserContext); 
+
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -91,7 +94,7 @@ const AIChatScreen = () => {
 
 
   // Function to simulate AI's response based on user input
-  const simulateAIResponse = (userText) => {
+  const simulateAIResponse = async (userText) => {
     console.log(userText);
     
     setIsTyping(true);  // Artificial delay to simulate "thinking"
@@ -129,6 +132,8 @@ const AIChatScreen = () => {
 
         } catch (error) {
             console.log('Axios error:', error.response?.data || error.message);
+        }finally{
+          setIsTyping(false);
         }
       
 

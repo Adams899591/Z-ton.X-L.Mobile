@@ -41,4 +41,9 @@ return [
         "apikey" => env('CLUBKONNECT_APIKEY'),
     ],
 
+    // Added OpenRouter API key for AI responses
+    "openrouter" => [
+        "api_key" => env('OPEN_ROUTER_API_KEY'),
+    ],
+
 ];

@@ -88,9 +88,3 @@ Route::prefix('aiChat')->group(function () {
 
 
 
-
-
-Route::prefix('ai')->group(function () {
-    Route::post('test', [AiResponceController::class, "sendAiRequest"]);
-});
-
