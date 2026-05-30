@@ -14,17 +14,28 @@ function ImagePickerAttachment({styles, COLORS, recording, setMessages, simulate
       });
   
       if (!result.canceled) {
+        const selectedImage = result.assets[0];
+
         // Create a new message object for the image
         const newMessage = {
           id: Date.now().toString(),
-          uri: result.assets[0].uri,
+          uri: selectedImage.uri,
           sender: 'user',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           type: 'image',
         };
         setMessages(prev => [...prev, newMessage]);
-        // Simulate AI response to the image
-        simulateAIResponse("I've attached an image for review.", 'image');
+
+        // Prepare FormData for Laravel
+        const formData = new FormData();
+        formData.append('image', {  // The key 'image' should match what your Laravel backend expects
+          uri: selectedImage.uri,
+          name: selectedImage.fileName || `upload_${Date.now()}.jpg`,
+          type: selectedImage.mimeType || 'image/jpeg',
+        });
+
+        // Passing the formData to the simulation to send it to Laravel
+        simulateAIResponse(formData, 'image');
       }
     };
   

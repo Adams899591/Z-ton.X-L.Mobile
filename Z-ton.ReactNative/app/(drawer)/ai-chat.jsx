@@ -97,17 +97,37 @@ const AIChatScreen = () => {
   const simulateAIResponse = async (userText, type = 'text') => {
     setIsTyping(true);  // Artificial delay to simulate "thinking"
     
-    console.log(userText); // Log the user text to verify it's being passed correctly
-    console.log(type); 
+    console.log("Sending type:", type); // Log the type being sent to the backend for debugging
+    console.log("Payload:", type === 'image' ? "[FormData Object]" : userText); 
+    // console.log(userText);
+    
     
 
       try {
+              let payload;
+              let config = {};
 
-              // Send response to laravel
-              const response =  await axios.post(`${API_URL}/aiChat/send-user-request/${user?.id}`, {
-                prompt: userText, // this hold the user message
-                type: type, // Pass the type (text, image, or audio) to the backend
-              });
+              // If it's an image, userText is actually the FormData object passed from the picker
+              if (type === 'image') {
+                payload = userText;
+                // We append the type to the FormData as well so Laravel can route the logic correctly
+                payload.append('type', type);
+                
+                config = {
+                  headers: {
+                    'Content-Type': 'multipart/form-data',
+                  },
+                };
+              } else {
+                // For standard text or audio strings, we send a JSON object
+                payload = {
+                  prompt: userText,
+                  type: type,
+                };
+              }
+
+              // Send the request to Laravel
+              const response = await axios.post(`${API_URL}/aiChat/send-user-request/${user?.id}`, payload, config);
 
 
               const responseData = response.data;
@@ -158,6 +178,8 @@ const AIChatScreen = () => {
                 failedUserText: userText, // Stores the message to send again if they click Retry
                 failedType: type, // Stores the type to send again if they click Retry
             };
+
+            // 
             setMessages(prev => [...prev, errorMessage]);
         }finally{
           setIsTyping(false);
@@ -526,8 +548,15 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 15,
     marginRight: 10,
+    justifyContent: 'center',
   },
-  input: { flex: 1, paddingVertical: 10, fontSize: 15, color: COLORS.black, maxHeight: 100 },
+  input: { 
+    width: '100%',
+    paddingVertical: 12, 
+    fontSize: 15, 
+    color: COLORS.black, 
+    maxHeight: 120 
+  },
   sendButton: {
     backgroundColor: COLORS.gold,
     width: 45,

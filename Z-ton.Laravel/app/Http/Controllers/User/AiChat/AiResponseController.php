@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class AiResponseController extends Controller
 {
@@ -27,6 +28,31 @@ class AiResponseController extends Controller
         $apiKey = config('services.openrouter.api_key');  // Fetch the API key from the configuration file
         $prompt = $request->prompt; // this holds the user message sent
         $type = $request->type ?? 'text'; // Retrieve the message type (text, image, audio)
+        $mediaUrl = null; // this will hold the fetched media URL from Supabase
+
+        // If the request contains an image, upload it to Supabase (S3)
+        if ($type === 'image' && $request->hasFile('image')) {
+            try {
+                $file = $request->file('image');
+                // Store the file in the 'ai_chat' folder within the Supabase bucket
+                $path = $file->store('ai_chat', 's3');
+                // Generate the public URL from Supabase storage
+                $mediaUrl = Storage::disk('s3')->url($path);
+            } catch (\Exception $e) {
+                Log::error('Image upload failed: ' . $e->getMessage());
+                return response()->json(['status' => 'error', 'message' => 'Failed to upload image.'], 500);
+            }
+        }
+
+        // Prepare the message content for OpenRouter. Vision models need an array for images.
+        if ($type === 'image' && $mediaUrl) {
+            $messageContent = [
+                ['type' => 'text', 'text' => $prompt ?? "Analyze the attached image."],
+                ['type' => 'image_url', 'image_url' => ['url' => $mediaUrl]]
+            ];
+        } else {
+            $messageContent = $prompt;
+        }
 
         $response = Http::withoutVerifying()
             ->withHeaders([
@@ -37,9 +63,10 @@ class AiResponseController extends Controller
         ])->timeout(60)->post("https://openrouter.ai/api/v1/chat/completions", [
             // 'model' => 'openrouter/free',
             "model" => "google/gemma-4-31b-it:free",
+            // 'model' => 'google/gemini-flash-1.5-8b', 
 
             'messages' => [
-                ['role' => 'user', 'content' => $prompt]
+                ['role' => 'user', 'content' => $messageContent]
             ]
         ]);
 
@@ -49,7 +76,7 @@ class AiResponseController extends Controller
             $aiText = $data['choices'][0]['message']['content'] ?? 'AI responded, but no text was found.';
 
             // // Use a transaction to ensure both records are saved together
-            DB::transaction(function () use ($user, $prompt, $aiText, $type) {
+            DB::transaction(function () use ($user, $prompt, $aiText, $type, $mediaUrl) {
 
                 if ($type === "text") {
                     
@@ -80,8 +107,8 @@ class AiResponseController extends Controller
                             'user_id' => $user->id,
                             'sender' => 'user',
                             'type' => $type,
-                            'messages' => null,
-                            'media_url' => $prompt,
+                            'messages' => $prompt,
+                            'media_url' => $mediaUrl,
                             'media_public_id' => null, // pass the message id later
                         ]);
 
