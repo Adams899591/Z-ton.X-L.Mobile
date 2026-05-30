@@ -26,6 +26,7 @@ class AiResponseController extends Controller
 
         $apiKey = config('services.openrouter.api_key');  // Fetch the API key from the configuration file
         $prompt = $request->prompt; // this holds the user message sent
+        $type = $request->type ?? 'text'; // Retrieve the message type (text, image, audio)
 
         $response = Http::withoutVerifying()
             ->withHeaders([
@@ -48,26 +49,75 @@ class AiResponseController extends Controller
             $aiText = $data['choices'][0]['message']['content'] ?? 'AI responded, but no text was found.';
 
             // // Use a transaction to ensure both records are saved together
-            DB::transaction(function () use ($user, $prompt, $aiText) {
-                // Insert the User message into database
-                AiChatMessage::create([
-                    'user_id' => $user->id,
-                    'sender' => 'user',
-                    'type' => 'text',
-                    'messages' => $prompt,
-                    'media_url' => null,
-                    'media_public_id' => null,
-                ]);
+            DB::transaction(function () use ($user, $prompt, $aiText, $type) {
 
-                // Insert the AI response into the database
-                AiChatMessage::create([
-                    'user_id' => $user->id,
-                    'sender' => 'ai',
-                    'type' => 'text',
-                    'messages' => $aiText,
-                    'media_url' => null,
-                    'media_public_id' => null,
-                ]);
+                if ($type === "text") {
+                    
+                        // Insert the User message into database
+                        AiChatMessage::create([
+                            'user_id' => $user->id,
+                            'sender' => 'user',
+                            'type' => $type,
+                            'messages' => $prompt,
+                            'media_url' => null,
+                            'media_public_id' => null,
+                        ]);
+
+                        // Insert the AI response into the database
+                        AiChatMessage::create([
+                            'user_id' => $user->id,
+                            'sender' => 'ai',
+                            'type' => $type,
+                            'messages' => $aiText,
+                            'media_url' => null,
+                            'media_public_id' => null,
+                        ]);
+
+                }elseif ($type === "image") {
+
+                        // Insert the User message into database
+                        AiChatMessage::create([
+                            'user_id' => $user->id,
+                            'sender' => 'user',
+                            'type' => $type,
+                            'messages' => null,
+                            'media_url' => $prompt,
+                            'media_public_id' => null, // pass the message id later
+                        ]);
+
+                        // Insert the AI response into the database
+                        AiChatMessage::create([
+                            'user_id' => $user->id,
+                            'sender' => 'ai',
+                            'type' => $type,
+                            'messages' => $aiText,
+                            'media_url' => null,
+                            'media_public_id' => null,
+                        ]);
+
+                }elseif ($type === "audio") {
+
+                        // Insert the User message into database
+                        AiChatMessage::create([
+                            'user_id' => $user->id,
+                            'sender' => 'user',
+                            'type' => $type,
+                            'messages' => $prompt,
+                            'media_url' => null,
+                            'media_public_id' => null,
+                        ]);
+
+                        // Insert the AI response into the database
+                        AiChatMessage::create([
+                            'user_id' => $user->id,
+                            'sender' => 'ai',
+                            'type' => $type,
+                            'messages' => $aiText,
+                            'media_url' => null,
+                            'media_public_id' => null,
+                        ]);
+                }
+
             });
 
             // return the AI response in a structured format

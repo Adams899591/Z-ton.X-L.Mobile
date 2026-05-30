@@ -19,10 +19,10 @@ function SendTextButton({ styles, COLORS, inputText, setInputText, setMessages, 
     setMessages(prev => [...prev, userMessage]);
     const currentInput = inputText; // Store current input before clearing
     setInputText(''); // Clear input field
-    simulateAIResponse(currentInput); // Simulate AI response to the sent message
+    simulateAIResponse(currentInput, 'text'); // Simulate AI response to the sent message
   };
 
-
+ 
   return (
        <>
           {/* Send Button for text messages, disabled when input is empty*/}

@@ -94,10 +94,11 @@ const AIChatScreen = () => {
 
 
   // Function to simulate AI's response based on user input
-  const simulateAIResponse = async (userText) => {
+  const simulateAIResponse = async (userText, type = 'text') => {
     setIsTyping(true);  // Artificial delay to simulate "thinking"
     
     console.log(userText); // Log the user text to verify it's being passed correctly
+    console.log(type); 
     
 
       try {
@@ -105,6 +106,7 @@ const AIChatScreen = () => {
               // Send response to laravel
               const response =  await axios.post(`${API_URL}/aiChat/send-user-request/${user?.id}`, {
                 prompt: userText, // this hold the user message
+                type: type, // Pass the type (text, image, or audio) to the backend
               });
 
 
@@ -154,6 +156,7 @@ const AIChatScreen = () => {
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 type: 'error', // This tells the UI to show the Retry button
                 failedUserText: userText, // Stores the message to send again if they click Retry
+                failedType: type, // Stores the type to send again if they click Retry
             };
             setMessages(prev => [...prev, errorMessage]);
         }finally{
@@ -169,7 +172,7 @@ const AIChatScreen = () => {
       // so that error messages don't pile up when retrying.
       setMessages(prev => prev.filter(msg => msg.id !== messageIdToRetry));
       
-      simulateAIResponse(messageToRetry.failedUserText);
+      simulateAIResponse(messageToRetry.failedUserText, messageToRetry.failedType || 'text');
     }
     
   };

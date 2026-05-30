@@ -9,7 +9,7 @@ import {
 function TextInputContainer({styles, recording, inputText, setInputText, recordingTime, waveAnims,}) {
 
 
-
+ 
   return (
     <>
                 {/* Text input container that switches to recording status when recording is active */}

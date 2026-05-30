@@ -24,11 +24,11 @@ function ImagePickerAttachment({styles, COLORS, recording, setMessages, simulate
         };
         setMessages(prev => [...prev, newMessage]);
         // Simulate AI response to the image
-        simulateAIResponse("I've attached an image for review.");
+        simulateAIResponse("I've attached an image for review.", 'image');
       }
     };
   
-
+ 
   return (
      <>
         {/* Attachment Button for Image Picker (disabled during recording) */}

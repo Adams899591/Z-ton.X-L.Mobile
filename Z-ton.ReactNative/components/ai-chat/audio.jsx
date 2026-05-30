@@ -86,12 +86,12 @@ function  AudioRecording({styles, COLORS, recording, pulseAnim, recordingInstanc
         setTimeout(() => {
           const transcribedText = "What is my current account balance?"; // Mock transcribed text
           setIsTranscribing(false);
-          simulateAIResponse(transcribedText);
+          simulateAIResponse(transcribedText, 'audio');
         }, 2000);
       };
     
 
- 
+  
 
   return (
     <>
