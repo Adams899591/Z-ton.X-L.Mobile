@@ -23,53 +23,49 @@ class AiResponseController extends Controller
     // This method is intended to handle AI chat requests for a specific user.
     public function handlesUserAiChatRequest(Request $request, $userId){
 
-         $user = User::findOrFail($userId); // Ensure the user exists, otherwise return a 404 error.
+        $user = User::findOrFail($userId); // Ensure the user exists, otherwise return a 404 error.
 
-        $apiKey = config('services.openrouter.api_key');  // Fetch the API key from the configuration file
+        $apiKey = config('services.openrouter.api_key');  // Fetch the AI API key from the configuration file
         $type = $request->type ?? 'text'; // Retrieve the message type (text, image, audio)
         
         // Ensure the prompt is never null to avoid the "at least 1 token" error
-        // $prompt = $request->input('prompt') ?? ($type === 'image' ? 'Analyze the attached image.' : 'Hello AI');
-        $prompt = $request->input('prompt') ?? ($type === 'image' ? 'Analyze the attached image and ask a question about it to keep the conversation going.' : 'Hello AI');   
+        $prompt = $request->input('prompt') ?? ($type === 'image' ? 'Analyze the attached image.' : 'Hello AI');
         $mediaUrl = null; // this will hold the fetched media URL from Supabase
+        $path = null; // this will hold the path returned by Storage::putFile, which is needed for database storage
 
         // If the request contains an image, upload it to Supabase (S3)
         if ($type === 'image' && $request->hasFile('image')) {
+
             try {
-                $file = $request->file('image');
+                    $file = $request->file('image');
 
-                // Log original file details as requested to debug what Laravel is receiving
-                Log::info('Incoming File Details', [
-                    'original_name' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getMimeType(),
-                    'size' => $file->getSize(),
-                    'is_valid' => $file->isValid(),
-                    'temp_path' => $file->getRealPath(), // This is the actual path on your server
-                ]);
+                    // Log original file details as requested to debug what Laravel is receiving
+                    Log::info('Incoming File Details', [
+                        'original_name' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize(),
+                        'is_valid' => $file->isValid(),
+                        'temp_path' => $file->getRealPath(), // This is the actual path on your server
+                    ]);
 
-                // Using the Storage facade directly ensures the file is placed in the 'ai_chat' directory.
-                // Specifying 'public' visibility ensures the file is accessible via the public URL.
+                    // Using the Storage facade directly ensures the file is placed in the 'ai_chat' directory.
+                    // Specifying 'public' visibility ensures the file is accessible via the public URL.
+                    $path = Storage::disk('s3')->putFile('ai_chat', $file, 'public');
 
-try {
-    $path = Storage::disk('s3')->putFile('ai_chat', $file, 'public');
-} catch (\Exception $e) {
-    Log::error('S3 putFile exception: ' . $e->getMessage());
-    throw $e;
-}
-                
-                Log::info('Supabase Upload Attempt', ['generated_path' => $path]);
 
-                // Only attempt to generate a URL if the path was successfully created
-                if ($path) {
-                    Log::info('Supabase Upload Successful', ['generated_path' => $path]);
-                    $mediaUrl = Storage::disk('s3')->url($path);
-                    
-                    if (!$mediaUrl) {
-                        Log::warning('Upload succeeded but Storage::url() returned empty string.');
+                    // Only attempt to generate a URL if the path was successfully created
+                    if ($path) {
+                        
+                        $mediaUrl = Storage::disk('s3')->url($path);
+                        Log::info('Supabase Upload Successful', ['generated_path' => $path]);
+                        
+                        if (!$mediaUrl) {
+                            Log::warning('Upload succeeded but Storage::url() returned empty string.');
+                        }
+                        
+                    } else {
+                        Log::error('Supabase Upload Failed: Storage::putFile returned false. Check your S3 credentials and endpoint.');
                     }
-                } else {
-                    Log::error('Supabase Upload Failed: Storage::putFile returned false. Check your S3 credentials and endpoint.');
-                }
             } catch (\Exception $e) {
                 Log::error('Image upload failed: ' . $e->getMessage());
                 return response()->json(['status' => 'error', 'message' => 'Failed to upload image.'], 500);
@@ -86,6 +82,7 @@ try {
             $messageContent = $prompt;
         }
 
+        // this haldles the sending of response to openrouters
         $response = Http::withoutVerifying()
             ->withHeaders([
             'Authorization' => "Bearer {$apiKey}",
@@ -108,7 +105,7 @@ try {
             $aiText = $data['choices'][0]['message']['content'] ?? 'AI responded, but no text was found.';
 
             // // Use a transaction to ensure both records are saved together
-            DB::transaction(function () use ($user, $prompt, $aiText, $type, $mediaUrl) {
+            DB::transaction(function () use ($user, $prompt, $aiText, $type, $mediaUrl, $path) {
                 // Insert the User message into the database
                 AiChatMessage::create([
                     'user_id' => $user->id,
@@ -116,7 +113,7 @@ try {
                     'type' => $type,
                     'messages' => $prompt,
                     'media_url' => ($type === 'image') ? $mediaUrl : null,
-                    'media_public_id' => null,
+                    'media_public_id' => $path,
                 ]);
 
                 // Insert the AI response into the database
@@ -137,6 +134,17 @@ try {
                 'aiResponse' => $aiText
             ]);
 
+        }
+         
+        // Note: if the code reaches this point 
+        // If the API call failed and we have an uploaded file, delete it to avoid orphan files in cloud storage
+        if ($path) {
+            try {
+                Storage::disk('s3')->delete($path);
+                Log::info('Orphan file deleted from Supabase due to API failure.', ['path' => $path]);
+            } catch (\Exception $e) {
+                Log::error('Failed to delete orphan file from Supabase: ' . $e->getMessage(), ['path' => $path]);
+            }
         }
 
         // Log the error details for debugging purposes
