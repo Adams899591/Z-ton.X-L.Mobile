@@ -14,7 +14,7 @@ const COLORS = { // Define colors for consistency
   lightGray: "#F9FAFB",
 };
 
-const AccountDetails = ({styles,user}) => {
+const AccountDetails = ({styles,user,setUser}) => {
 
      const [isLoading, setIsLoading] = useState(false);
 
@@ -34,7 +34,7 @@ const AccountDetails = ({styles,user}) => {
             setEmailError("");
 
             try {
-
+ 
                 const response = await axios.put(`${API_URL}/user/updateInfo/${user.id}`,{
                     name: name,
                     email: email,
@@ -46,8 +46,7 @@ const AccountDetails = ({styles,user}) => {
 
                   //  Save the user data to global context for access across the app
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  setUser(data.user);
-
+                  setUser(data.user) // update the user 
                    Alert.alert("Updated", data.message);
                 }
                 

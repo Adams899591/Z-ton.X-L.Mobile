@@ -35,7 +35,7 @@ const ProfileSecurityScreen = () => {
       <ScrollView contentContainerStyle={styles.content}>
         
               {/* Account Details Props */}
-              <AccountDetails styles={styles} user={user}/>
+              <AccountDetails styles={styles} user={user} setUser={setUser}/>
             
 
               <View style={styles.divider} />

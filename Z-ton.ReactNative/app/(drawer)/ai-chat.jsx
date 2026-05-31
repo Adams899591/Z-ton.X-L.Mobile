@@ -472,7 +472,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
   },
-  aiBubble: { backgroundColor: COLORS.aiBubble, borderTopLeftRadius: 4 },
+  aiBubble: { 
+    backgroundColor: COLORS.aiBubble, 
+    borderTopLeftRadius: 4,
+    width: '100%',
+    maxWidth: '100%',
+  },
   userBubble: { backgroundColor: COLORS.userBubble, borderTopRightRadius: 4 },
   
   aiIconBadge: {

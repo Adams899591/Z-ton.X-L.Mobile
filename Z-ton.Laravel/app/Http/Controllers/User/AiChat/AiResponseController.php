@@ -56,9 +56,9 @@ class AiResponseController extends Controller
                     // Only attempt to generate a URL if the path was successfully created
                     if ($path) {
                         
-                        $mediaUrl = Storage::disk('s3')->url($path);
-                        Log::info('Supabase Upload Successful', ['generated_path' => $path]);
                         
+                        Log::info('Supabase Upload Successful', ['generated_path' => $path]);
+                        $mediaUrl = Storage::disk('s3')->url($path);
                         if (!$mediaUrl) {
                             Log::warning('Upload succeeded but Storage::url() returned empty string.');
                         }

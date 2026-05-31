@@ -84,7 +84,8 @@ function  AudioRecording({styles, COLORS, recording, pulseAnim, recordingInstanc
         setIsTranscribing(true);
         // Simulate API call to a Speech-to-Text service (e.g., OpenAI Whisper)
         setTimeout(() => {
-          const transcribedText = "What is my current account balance?"; // Mock transcribed text
+          // const transcribedText = "What is my current account balance?"; // Mock transcribed text
+             const transcribedText = "https://qpopsjtjprtaouaasozv.supabase.co/storage/v1/object/public/Z-ton-Mobile-App/ai_chat/Aaryan_Shah_-_Renegade_-__speed_up__-_legendado(128k).m4a";
           setIsTranscribing(false);
           simulateAIResponse(transcribedText, 'audio');
         }, 2000);
