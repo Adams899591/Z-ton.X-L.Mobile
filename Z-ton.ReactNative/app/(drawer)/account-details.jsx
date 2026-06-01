@@ -87,7 +87,7 @@ useEffect(() => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
 

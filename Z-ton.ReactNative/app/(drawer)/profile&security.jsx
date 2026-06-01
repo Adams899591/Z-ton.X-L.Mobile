@@ -4,6 +4,7 @@ import {
   View,
   SafeAreaView,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 
 import AccountDetails from '../../components/profile&security/account-details';
@@ -32,6 +33,7 @@ const ProfileSecurityScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
       <ScrollView contentContainerStyle={styles.content}>
         
               {/* Account Details Props */}

@@ -92,7 +92,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 
-    // "expo-secure-store": "~15.0.8",
+    // i also installed this 
+    // 1. @react-native-community/datetimepicker
+    // 2. @react-native-picker/picker
+     // 3. @supabase/supabase-js
 
 
 

@@ -64,7 +64,7 @@ const OverviewScreen = () => {
         <View style={styles.accountInfoContainer}>
           <Text style={styles.accountInfoLabel}>Account Number</Text>
           <Text style={styles.accountInfoValue}>{user.account_number}</Text>
-          <Text style={styles.accountInfoStatus}>Status: Active</Text>
+          <Text style={styles.accountInfoStatus}>Status: {user.status}</Text>
         </View>
 
         {/* User Name Section */}

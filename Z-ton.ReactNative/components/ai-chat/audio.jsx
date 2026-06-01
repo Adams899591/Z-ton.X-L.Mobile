@@ -2,6 +2,8 @@ import React from 'react'
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
+import { supabase } from '../../app/server/config';
 import {
   StyleSheet,
   View,
@@ -13,6 +15,48 @@ import {
 
 // Audio Recording Component
 function  AudioRecording({styles, COLORS, recording, pulseAnim, recordingInstance, timerRef, setRecording, setRecordingTime,  waveAnims, setMessages, setIsTranscribing, simulateAIResponse, isHoldingMic}) {
+
+      const BUCKET_NAME = 'Z-ton-Mobile-App'; // Supabase storage bucket name
+
+      // Helper function to convert base64 string to Uint8Array for file upload
+      const base64ToUint8Array = (base64) => {
+        const binaryString = typeof atob === 'function' ? atob(base64) : Buffer.from(base64, 'base64').toString('binary');
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
+      };
+
+      // Function to upload audio to Supabase storage and return the public URL
+      const uploadAudioToSupabase = async (uri) => {
+        try {
+          const extension = uri.split('.').pop().split('?')[0] || 'm4a';
+          const filename = `audio_${Date.now()}.${extension}`; // Generate a unique filename
+          const filePath = `ai_chat/${filename}`;
+
+          // Read audio file as base64 and convert to bytes
+          const base64Data = await FileSystem.readAsStringAsync(uri, {
+            encoding: 'base64',
+          });
+          const bytes = base64ToUint8Array(base64Data);
+
+          // Upload file to Supabase Storage
+          const { error } = await supabase.storage.from(BUCKET_NAME).upload(filePath, bytes, {
+            contentType: `audio/${extension}`,
+            upsert: false,
+          });
+
+          if (error) throw error;
+
+          const { data: publicUrlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath);
+          return publicUrlData.publicUrl;
+        } catch (err) {
+          console.error('Audio upload error:', err.message || err);
+          return null;
+        }
+      };
 
       // Callback to start the waveform animation for audio recording
       const startWaveAnimation = useCallback(() => {
@@ -63,6 +107,7 @@ function  AudioRecording({styles, COLORS, recording, pulseAnim, recordingInstanc
           setRecording(null);
           await rInstance.stopAndUnloadAsync();
           const uri = rInstance.getURI();
+          console.log('Audio Device Path (URI):', uri); // Log the audio URI
           
           // Add Audio Message to UI
           const audioMsg = {
@@ -80,15 +125,18 @@ function  AudioRecording({styles, COLORS, recording, pulseAnim, recordingInstanc
       };
     
       // Function to handle audio transcription (simulated)
-      const handleTranscription = (uri) => {
+      const handleTranscription = async (uri) => {
         setIsTranscribing(true);
-        // Simulate API call to a Speech-to-Text service (e.g., OpenAI Whisper)
-        setTimeout(() => {
-          // const transcribedText = "What is my current account balance?"; // Mock transcribed text
-             const transcribedText = "https://qpopsjtjprtaouaasozv.supabase.co/storage/v1/object/public/Z-ton-Mobile-App/ai_chat/Aaryan_Shah_-_Renegade_-__speed_up__-_legendado(128k).m4a";
-          setIsTranscribing(false);
-          simulateAIResponse(transcribedText, 'audio');
-        }, 2000);
+
+        // Upload the audio file to Supabase first
+        const publicUrl = await uploadAudioToSupabase(uri);
+
+        if (publicUrl) {
+          // Send the actual Supabase URL of the audio to your simulateAIResponse function
+          simulateAIResponse(publicUrl, 'audio');
+        }
+
+        setIsTranscribing(false);
       };
     
 

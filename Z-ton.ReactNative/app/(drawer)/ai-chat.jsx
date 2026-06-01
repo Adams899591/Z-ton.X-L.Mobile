@@ -11,7 +11,8 @@ import {
   ImageBackground,
   ActivityIndicator,
   Animated,
-  TouchableOpacity
+  TouchableOpacity,
+  StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -326,7 +327,7 @@ const AIChatScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-    
+    <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
       {/* Chat Background with pattern */}
       <ImageBackground 
         source={{ uri: 'https://www.transparenttextures.com/patterns/diagmonds-light.png' }} 

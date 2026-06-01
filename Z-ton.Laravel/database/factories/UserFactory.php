@@ -30,12 +30,13 @@ class UserFactory extends Factory
             'email' => $this->faker->unique()->safeEmail(),
             'account_type' => $this->faker->randomElement(['Savings Account', 'Current Account', 'Fixed Deposit']),
             'currency' => 'USD',
-            'status' => $this->faker->randomElement(['Active', 'Inactive', 'Suspended']),
+            'status' => $this->faker->randomElement(['Active', 'Suspended', 'Blocked']), // 'InActive' remove from faker record
             'phone' => $this->faker->numerify('##########'), // 10 digits
             'account_number' => $this->faker->numerify('##########'), // 10 digits
             "network_id" => \App\Models\Network::inRandomOrder()->first()->id ?? 1, // Pick random existing network
             'bvn' => $this->faker->numerify('###########'), // 11 digits
             'nin' => $this->faker->numerify('###########'), // 11 digits
+            "date_of_birth" => $this->faker->dateOfBirth(minAge: 18, maxAge: 80)->format('Y-m-d'), // Random date of birth between 18 and 80 years ago
             'password' => Hash::make('password'),
             'balance' => $this->faker->randomFloat(2, 1000, 500000),
             'email_verified_at' => now(),

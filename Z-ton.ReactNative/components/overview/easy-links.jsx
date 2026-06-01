@@ -24,7 +24,7 @@ const EasyLinks = ({styles}) => {
                 <Ionicons name="wallet-outline" size={24} color={COLORS.gold} />
                 <Text style={styles.easyLinkText}>Payment</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.easyLinkButton} onPress={() => router.push("pages/navigate/transfer-history")}>
+              <TouchableOpacity style={styles.easyLinkButton} onPress={() => router.push("(drawer)/(tabs)/transfer")}>
                 <Ionicons name="swap-horizontal-outline" size={24} color={COLORS.gold} />
                 <Text style={styles.easyLinkText}>Transfer</Text>
               </TouchableOpacity>
@@ -48,7 +48,7 @@ const EasyLinks = ({styles}) => {
                 <Ionicons name="help-circle-outline" size={24} color={COLORS.gold} />
                 <Text style={styles.easyLinkText}>Support</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.easyLinkButton}>
+              <TouchableOpacity style={styles.easyLinkButton} onPress={() => router.push("pages/navigate/transfer-history")}>
                 <Ionicons name="document-text-outline" size={24} color={COLORS.gold} />
                 <Text style={styles.easyLinkText}>Statements</Text>
               </TouchableOpacity>

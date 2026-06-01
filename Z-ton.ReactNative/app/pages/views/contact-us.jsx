@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -15,7 +15,14 @@ const COLORS = {
 
 const ContactUsScreen = () => {
   const router = useRouter();
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
 
+  // this help to set the model vesibility of Start Live Chat to be true 
+  const handleLiveChatPress = () => {
+    setIsAlertVisible(true);
+  };
+
+  // this component help to handle the contact items below
   const ContactItem = ({ icon, label, value, onPress }) => (
     <TouchableOpacity style={styles.contactItem} onPress={onPress}>
       <View style={styles.iconCircle}>
@@ -49,19 +56,19 @@ const ContactUsScreen = () => {
             icon="call-outline" 
             label="Customer Care" 
             value="+234 800 123 4567" 
-            onPress={() => Linking.openURL('tel:+2348001234567')}
+            onPress={() => Linking.openURL('tel:+2349018827571')}
           />
           <ContactItem 
             icon="call-outline" 
             label="Technical Support" 
             value="+234 800 987 6543" 
-            onPress={() => Linking.openURL('tel:+2348009876543')}
+            onPress={() => Linking.openURL('tel:+2349138011971')}
           />
           <ContactItem 
             icon="alert-circle-outline" 
             label="Report Fraud" 
             value="+234 800 000 0000" 
-            onPress={() => Linking.openURL('tel:+2348000000000')}
+            onPress={() => Linking.openURL('tel:+2349136119934')}
           />
         </View>
 
@@ -73,13 +80,13 @@ const ContactUsScreen = () => {
             icon="mail-outline" 
             label="General Inquiries" 
             value="support@ztonbank.com" 
-            onPress={() => Linking.openURL('mailto:support@ztonbank.com')}
+            onPress={() => Linking.openURL('mailto:usmanadams551@gmail.com')}
           />
           <ContactItem 
             icon="chatbox-ellipses-outline" 
             label="Complaints" 
             value="complaints@ztonbank.com" 
-            onPress={() => Linking.openURL('mailto:complaints@ztonbank.com')}
+            onPress={() => Linking.openURL('mailto:usmanadams530@gmail.com')}
           />
         </View>
 
@@ -104,13 +111,45 @@ const ContactUsScreen = () => {
         </View>
 
         {/* Live Chat Action */}
-        <TouchableOpacity style={styles.liveChatButton}>
+        <TouchableOpacity style={styles.liveChatButton} onPress={handleLiveChatPress}>
           <Ionicons name="chatbubbles-outline" size={24} color={COLORS.white} />
           <Text style={styles.liveChatText}>Start Live Chat</Text>
         </TouchableOpacity>
         
         <Text style={styles.availabilityText}>Our team is available 24/7 to assist you.</Text>
       </ScrollView>
+
+      {/* Custom Professional Alert Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isAlertVisible}
+        onRequestClose={() => setIsAlertVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.alertIconContainer}>
+              <Ionicons name="shield-checkmark" size={50} color={COLORS.gold} />
+            </View>
+            
+            <Text style={styles.modalTitle}>Secure Live Chat</Text>
+            <Text style={styles.modalMessage}>
+              To protect your account data and provide personalized assistance, please sign in to your Z-ton Bank account.
+            </Text>
+
+            <TouchableOpacity 
+              style={styles.primaryModalButton} 
+              onPress={() => { setIsAlertVisible(false); router.push('/pages/views/login'); }}
+            >
+              <Text style={styles.primaryButtonText}>Login to Continue</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.secondaryModalButton} onPress={() => setIsAlertVisible(false)}>
+              <Text style={styles.secondaryButtonText}>Not Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 };
@@ -174,4 +213,26 @@ const styles = StyleSheet.create({
   },
   liveChatText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
   availabilityText: { textAlign: 'center', color: COLORS.gray, fontSize: 13, marginTop: 20 },
+  
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { 
+    backgroundColor: COLORS.white, 
+    width: '100%', 
+    borderRadius: 25, 
+    padding: 30, 
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  alertIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.lightGray, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.black, marginBottom: 12 },
+  modalMessage: { fontSize: 15, color: COLORS.darkGray, textAlign: 'center', lineHeight: 22, marginBottom: 25 },
+  primaryModalButton: { backgroundColor: COLORS.black, width: '100%', paddingVertical: 15, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
+  primaryButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
+  secondaryModalButton: { width: '100%', paddingVertical: 12, alignItems: 'center' },
+  secondaryButtonText: { color: COLORS.gray, fontSize: 15, fontWeight: '600' },
 });

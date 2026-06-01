@@ -9,7 +9,7 @@ return new class extends Migration
     /** 
      * Run the migrations. 
      */
-    public function up(): void
+    public function up(): void 
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string("profile_public_id")->nullable();
             $table->string('bvn', 11)->unique();
             $table->string('nin', 11)->unique();
+            $table->date("date_of_birth")->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string("biometric_token")->nullable();

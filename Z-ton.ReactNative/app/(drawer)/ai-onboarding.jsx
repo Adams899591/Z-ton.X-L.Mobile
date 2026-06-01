@@ -88,7 +88,7 @@ const AIOnboardingScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
       
       <ImageBackground 
         source={{ uri: 'https://www.transparenttextures.com/patterns/diagmonds-light.png' }} 

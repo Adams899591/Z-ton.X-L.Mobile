@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, SafeAreaView, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const COLORS = {
   black: "#000000",
@@ -15,18 +16,40 @@ const COLORS = {
 const RegisterScreen = () => {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [date, setDate] = useState(new Date());
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
     nin: '',
     bvn: '',
+    dateOfBirth: '',
     password: '',
     confirmPassword: '',
     receivedAccountNumber: '',
   });
   const [agreeTerms, setAgreeTerms] = useState(false);
 
+  // this function handles our change
+  const onDateChange = (event, selectedDate) => {
+    // Close picker for Android immediately
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    
+    if (selectedDate) {
+      setDate(selectedDate);
+      
+      // Format the date as DD/MM/YYYY
+      const day = selectedDate.getDate().toString().padStart(2, '0');
+      const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+      const year = selectedDate.getFullYear();
+      const formattedDate = `${day}/${month}/${year}`;
+      
+      setFormData({ ...formData, dateOfBirth: formattedDate });
+    }
+  };
+
+  // this function determine the page the users go 
   const handleAction = () => {
     if (step === 1) {
       // Move to account number verification step
@@ -59,6 +82,7 @@ const RegisterScreen = () => {
               <Text style={styles.subText}>Enter your details and identification to get started.</Text>
             </View>
 
+            {/* Full Name */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Full Name</Text>
               <TextInput
@@ -69,6 +93,7 @@ const RegisterScreen = () => {
               />
             </View>
 
+            {/* Email Address */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
               <TextInput
@@ -81,6 +106,7 @@ const RegisterScreen = () => {
               />
             </View>
 
+            {/* Phone Number */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Phone Number</Text>
               <TextInput
@@ -92,6 +118,7 @@ const RegisterScreen = () => {
               />
             </View>
 
+            {/* NIN (National Identity Number) */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>NIN (National Identity Number)</Text>
               <TextInput
@@ -104,6 +131,7 @@ const RegisterScreen = () => {
               />
             </View>
 
+            {/* BVN (Bank Verification Number) */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>BVN (Bank Verification Number)</Text>
               <TextInput
@@ -116,6 +144,33 @@ const RegisterScreen = () => {
               />
             </View>
 
+            {/* Date of Birth */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Date of Birth</Text>
+
+                {/* this hold the icon on date of birth */}
+              <TouchableOpacity 
+                style={styles.dateInputContainer} 
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={[styles.inputText, !formData.dateOfBirth && { color: COLORS.gray }]}>
+                  {formData.dateOfBirth || "Select Date of Birth"}
+                </Text>
+                <Ionicons name="calendar-outline" size={20} color={COLORS.gold} />
+              </TouchableOpacity>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={date}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+                  onChange={onDateChange}
+                  maximumDate={new Date()} // Prevent selecting future dates
+                />
+              )}
+            </View>
+
+            {/* Password */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
               <TextInput
@@ -127,6 +182,7 @@ const RegisterScreen = () => {
               />
             </View>
 
+            {/* Confirm Password */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Confirm Password</Text>
               <TextInput
@@ -138,6 +194,7 @@ const RegisterScreen = () => {
               />
             </View>
 
+            {/* Terms and Services */}
             <TouchableOpacity 
               style={styles.termsContainer} 
               onPress={() => setAgreeTerms(!agreeTerms)}
@@ -153,12 +210,14 @@ const RegisterScreen = () => {
             </TouchableOpacity>
           </>
         ) : (
+          // 
           <>
             <View style={styles.introSection}>
               <Text style={styles.welcomeText}>Verify Account</Text>
               <Text style={styles.subText}>We've generated your account number. Enter it below to activate and receive your welcome credit.</Text>
             </View>
 
+            {/* Account Number */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Account Number</Text>
               <TextInput
@@ -173,6 +232,7 @@ const RegisterScreen = () => {
           </>
         )}
 
+        {/* Button that is visible on both 'REGISTER' : 'ACTIVATE & CREDIT' but text changes */}
         <TouchableOpacity style={styles.registerButton} onPress={handleAction}>
           <Text style={styles.registerButtonText}>{step === 1 ? 'REGISTER' : 'ACTIVATE & CREDIT'}</Text>
         </TouchableOpacity>
@@ -185,6 +245,7 @@ const RegisterScreen = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      
     </SafeAreaView>
   );
 };
@@ -224,6 +285,16 @@ const styles = StyleSheet.create({
     color: COLORS.black,
     fontSize: 16,
   },
+  dateInputContainer: {
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  inputText: { fontSize: 16, color: COLORS.black },
   termsContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
   termsText: { color: COLORS.black, marginLeft: 10, fontSize: 13, flex: 1 },
   linkText: { color: COLORS.gold, fontWeight: 'bold' },

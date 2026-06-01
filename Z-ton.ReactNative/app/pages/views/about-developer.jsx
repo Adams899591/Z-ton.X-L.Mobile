@@ -15,6 +15,7 @@ const COLORS = {
 const AboutDeveloperScreen = () => {
   const router = useRouter();
 
+  // this component helps to handles 
   const SocialItem = ({ icon, label, onPress }) => (
     <TouchableOpacity style={styles.socialItem} onPress={onPress}>
       <View style={styles.socialIconCircle}>
@@ -62,27 +63,27 @@ const AboutDeveloperScreen = () => {
             <SocialItem 
               icon="logo-linkedin" 
               label="LinkedIn" 
-              // onPress={() => Linking.openURL('https://linkedin.com/in/your-profile')} 
+              onPress={() => Linking.openURL('https://www.linkedin.com/in/usman-adams-7a5900352?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app')} 
             />
             <SocialItem 
               icon="mail-outline" 
               label="Email" 
-              // onPress={() => Linking.openURL('mailto:adamsusman@example.com')} 
+              onPress={() => Linking.openURL('mailto:usmanadams551@gmail.com')} 
             />
             <SocialItem 
               icon="call-outline" 
               label="Call" 
-              onPress={() => Linking.openURL('tel:+2348000000000')} 
+              onPress={() => Linking.openURL('tel:+2349018827571')} 
             />
             <SocialItem 
               icon="logo-whatsapp" 
               label="WhatsApp" 
-              // onPress={() => Linking.openURL('https://wa.me/2348000000000')} 
+              onPress={() => Linking.openURL('https://wa.me/2349018827571')} 
             />
             <SocialItem 
               icon="globe-outline" 
               label="Portfolio" 
-              // onPress={() => Linking.openURL('https://your-portfolio.com')} 
+              onPress={() => Linking.openURL('https://dev-adams-portfolio.vercel.app/portfolio/home')} 
             />
           </View>
         </View>
@@ -90,7 +91,7 @@ const AboutDeveloperScreen = () => {
         {/* Education */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Education</Text>
-          <Text style={styles.paragraph}>I am currently a 300-level student at the Federal University Dutsin-Ma, pursuing a degree that complements my passion for software development.</Text>
+          <Text style={styles.paragraph}>I am currently a 400-level student at the Federal University Dutsin-Ma, pursuing a degree that complements my passion for software development.</Text>
         </View>
 
         {/* Skills & Expertise */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, ScrollView, Dimensions, TouchableOpacity, StatusBar } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -77,6 +77,7 @@ const AnalyticsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
         {/* Timeframe Selector */}
