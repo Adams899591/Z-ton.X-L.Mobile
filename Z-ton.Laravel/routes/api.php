@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\BiometricSetUpController;
 use App\Http\Controllers\Auth\DisableBiometricController;
 use App\Http\Controllers\Auth\LoginBiometricController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\User\Ai\AiResponceController;
 use App\Http\Controllers\User\AiChat\AiResponseController;
 use App\Http\Controllers\User\Airtime\BiometricAirtimeController;
@@ -34,6 +35,8 @@ Route::prefix("auth")->group(function () {
     Route::post("login-biometric", [LoginBiometricController::class, "loginBiometric"]);
     Route::post("enable-biometric/{userId}", [BiometricSetUpController::class, "enableBiometrictSetUp"]);
     Route::post("disable-biometric/{userId}", [DisableBiometricController::class, "disableBiometrictSetUp"]);
+    Route::post("register", [RegisterController::class, "register"]);
+    Route::post("verify-account", [RegisterController::class, "verifyAccount"]);
 });
 
 
@@ -85,6 +88,3 @@ Route::prefix("transfer")->group(function () {
 Route::prefix('aiChat')->group(function () {
     Route::post('send-user-request/{userId}', [AiResponseController::class, "handlesUserAiChatRequest"]);
 });
-
-
-

@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, SafeAreaView, StatusBar, Platform } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, SafeAreaView, StatusBar, Platform, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import axios from 'axios';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import RegisterStep1 from '../../../components/register/register-step-1';
+import RegisterStep2 from '../../../components/register/register-step-2';
+import { API_URL } from '../../server/config';
 
 const COLORS = {
   black: "#000000",
@@ -11,6 +16,7 @@ const COLORS = {
   white: "#FFFFFF",
   darkGray: "#1F2937",
   lightGray: "#F3F4F6",
+  red: "#EF4444",
 };
 
 const RegisterScreen = () => {
@@ -26,40 +32,103 @@ const RegisterScreen = () => {
     bvn: '',
     dateOfBirth: '',
     password: '',
-    confirmPassword: '',
-    receivedAccountNumber: '',
+    password_confirmation: '',
+    
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [accountNumber, setAccountNumber] = useState()
+  const [errorAccountNumber, setErrorAccountNumber] = useState(null)
   const [agreeTerms, setAgreeTerms] = useState(false);
 
-  // this function handles our change
-  const onDateChange = (event, selectedDate) => {
-    // Close picker for Android immediately
-    if (Platform.OS === 'android') setShowDatePicker(false);
-    
-    if (selectedDate) {
-      setDate(selectedDate);
-      
-      // Format the date as DD/MM/YYYY
-      const day = selectedDate.getDate().toString().padStart(2, '0');
-      const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
-      const year = selectedDate.getFullYear();
-      const formattedDate = `${day}/${month}/${year}`;
-      
-      setFormData({ ...formData, dateOfBirth: formattedDate });
-    }
-  };
+  
+ const handleUserRegistration = async () => {
+        if (!agreeTerms) {
+          Alert.alert('Terms Required', 'You must agree to the terms before registering.');
+          return;
+        }
+        setErrors({}); // Clear previous errors
+        setErrorAccountNumber(null)
+        setIsLoading(true);
+        
+   
+        try {
+                if (step === 1) {
+                          // Step 1: Initial Registration
+                          const response = await axios.post(`${API_URL}/auth/register`, {
+                                name: formData.fullName,
+                                email: formData.email,
+                                phone: formData.phone,
+                                nin: formData.nin,
+                                bvn: formData.bvn,
+                                date_of_birth: formData.dateOfBirth,
+                                password: formData.password,
+                                password_confirmation: formData.password_confirmation,
+                          });
 
-  // this function determine the page the users go 
-  const handleAction = () => {
-    if (step === 1) {
-      // Move to account number verification step
-      setStep(2);
-    } else {
-      // Finalize and redirect to dashboard
-      console.log("Activating account and crediting:", formData);
-      router.replace("/(drawer)/(tabs)/overview");
-    }
-  };
+                          const responseData = response.data;
+                          
+                          // Improved check: handles both 'success' boolean and 'status' string
+                          if (responseData.success || responseData.status === 'success') {
+                            setStep(2);
+                            console.log("Step 1 Success:", responseData.message);
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          } else {
+                            Alert.alert("Registration Failed", responseData.message || "Could not complete registration.");
+                          }
+                } else {
+                          // Step 2 Logic: Activation & Credit
+                          const response = await axios.post(`${API_URL}/auth/verify-account`,{
+                             account_number: accountNumber,
+                          })
+                            const responseData = response.data;
+
+                          if(responseData.status === "success"){
+                              console.log("Finalizing Step 2 Activation:", formData);
+                              
+                              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                              router.replace("/pages/views/register.success");
+                          } else {
+                              // Handle logical errors (e.g. account not found)
+                              setErrorAccountNumber(responseData.message || "Invalid account number");
+                              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                          }
+
+                }
+        }catch (error) { // handle errors from the API or network issues
+                   const data = error.response?.data; // Safely extract response data if it exists
+                  console.log(error)
+                  
+                    // validation error from Laravel
+                    if (data?.errors) { // check if there are validation errors in the response
+                          const serverErrors = { ...data.errors };
+                          if (serverErrors.name) serverErrors.fullName = serverErrors.name;
+                          if (serverErrors.password_confirmation) serverErrors.password_confirmation = serverErrors.password_confirmation;
+                          if (serverErrors.date_of_birth) serverErrors.dateOfBirth = serverErrors.date_of_birth;
+                          // Map the account_number error to your state
+                          if (serverErrors.account_number) setErrorAccountNumber(serverErrors.account_number[0]);
+                        
+                          
+                          setErrors(serverErrors);
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+                    } else {
+                          // other errors (e.g. connection issues)
+                          const message = data?.message || "Connection failed. Please check if the server is running.";
+                          Alert.alert("Registration Failed", message);
+                    } 
+        
+        
+           } finally { // reset loading state after the login process is complete, regardless of success or failure
+             setIsLoading(false);
+           }
+  }
+
+
+
+
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -77,164 +146,47 @@ const RegisterScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {step === 1 ? (
           <>
-            <View style={styles.introSection}>
-              <Text style={styles.welcomeText}>Join Z-ton Bank</Text>
-              <Text style={styles.subText}>Enter your details and identification to get started.</Text>
-            </View>
-
-            {/* Full Name */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your full name"
-                placeholderTextColor={COLORS.gray}
-                onChangeText={(text) => setFormData({ ...formData, fullName: text })}
-              />
-            </View>
-
-            {/* Email Address */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor={COLORS.gray}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
-              />
-            </View>
-
-            {/* Phone Number */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter phone number"
-                placeholderTextColor={COLORS.gray}
-                keyboardType="phone-pad"
-                onChangeText={(text) => setFormData({ ...formData, phone: text })}
-              />
-            </View>
-
-            {/* NIN (National Identity Number) */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>NIN (National Identity Number)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="11-digit NIN"
-                placeholderTextColor={COLORS.gray}
-                keyboardType="numeric"
-                maxLength={11}
-                onChangeText={(text) => setFormData({ ...formData, nin: text })}
-              />
-            </View>
-
-            {/* BVN (Bank Verification Number) */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>BVN (Bank Verification Number)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="11-digit BVN"
-                placeholderTextColor={COLORS.gray}
-                keyboardType="numeric"
-                maxLength={11}
-                onChangeText={(text) => setFormData({ ...formData, bvn: text })}
-              />
-            </View>
-
-            {/* Date of Birth */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Date of Birth</Text>
-
-                {/* this hold the icon on date of birth */}
-              <TouchableOpacity 
-                style={styles.dateInputContainer} 
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Text style={[styles.inputText, !formData.dateOfBirth && { color: COLORS.gray }]}>
-                  {formData.dateOfBirth || "Select Date of Birth"}
-                </Text>
-                <Ionicons name="calendar-outline" size={20} color={COLORS.gold} />
-              </TouchableOpacity>
-
-              {showDatePicker && (
-                <DateTimePicker
-                  value={date}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-                  onChange={onDateChange}
-                  maximumDate={new Date()} // Prevent selecting future dates
+              {/* Register Step1  .props */}
+                <RegisterStep1
+                    styles={styles}
+                    COLORS={COLORS}
+                    formData={formData}
+                    setFormData={setFormData}
+                    showDatePicker={showDatePicker}
+                    setShowDatePicker={setShowDatePicker}
+                    date={date}
+                    setDate={setDate}
+                    agreeTerms={agreeTerms}
+                    setAgreeTerms={setAgreeTerms}
+                    errors={errors}
+                    setErrors={setErrors}
                 />
-              )}
-            </View>
-
-            {/* Password */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Create a password"
-                placeholderTextColor={COLORS.gray}
-                secureTextEntry
-                onChangeText={(text) => setFormData({ ...formData, password: text })}
-              />
-            </View>
-
-            {/* Confirm Password */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Repeat your password"
-                placeholderTextColor={COLORS.gray}
-                secureTextEntry
-                onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-              />
-            </View>
-
-            {/* Terms and Services */}
-            <TouchableOpacity 
-              style={styles.termsContainer} 
-              onPress={() => setAgreeTerms(!agreeTerms)}
-            >
-              <Ionicons 
-                name={agreeTerms ? "checkbox" : "square-outline"} 
-                size={24} 
-                color={COLORS.gold} 
-              />
-              <Text style={styles.termsText}>
-                I agree to the <Text style={styles.linkText}>Terms of Service</Text> and <Text style={styles.linkText}>Privacy Policy</Text>
-              </Text>
-            </TouchableOpacity>
           </>
         ) : (
-          // 
           <>
-            <View style={styles.introSection}>
-              <Text style={styles.welcomeText}>Verify Account</Text>
-              <Text style={styles.subText}>We've generated your account number. Enter it below to activate and receive your welcome credit.</Text>
-            </View>
+               {/*  Register Step 2 .props */}
+               <RegisterStep2
+                  styles={styles}
+                  COLORS={COLORS}
+                  accountNumber={accountNumber}
+                  setAccountNumber={setAccountNumber}
+                  errorAccountNumber={errorAccountNumber}
+               />
 
-            {/* Account Number */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Account Number</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter 10-digit account number"
-                placeholderTextColor={COLORS.gray}
-                keyboardType="numeric"
-                maxLength={10}
-                onChangeText={(text) => setFormData({ ...formData, receivedAccountNumber: text })}
-              />
-            </View>
           </>
         )}
 
         {/* Button that is visible on both 'REGISTER' : 'ACTIVATE & CREDIT' but text changes */}
-        <TouchableOpacity style={styles.registerButton} onPress={handleAction}>
-          <Text style={styles.registerButtonText}>{step === 1 ? 'REGISTER' : 'ACTIVATE & CREDIT'}</Text>
+        <TouchableOpacity 
+          style={[styles.registerButton, isLoading && { opacity: 0.7 }]} 
+          onPress={handleUserRegistration}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color={COLORS.white} />
+          ) : (
+            <Text style={styles.registerButtonText}>{step === 1 ? 'REGISTER' : 'ACTIVATE & CREDIT'}</Text>
+          )}
         </TouchableOpacity>
 
         {/* Login Link */}
@@ -244,7 +196,22 @@ const RegisterScreen = () => {
             <Text style={styles.loginLinkText}>Sign In</Text>
           </TouchableOpacity>
         </View>
+        
+        {/* Activate Account Link */} 
+        {step === 1 && (
+          <>
+              <View style={styles.loginLinkContainer}>
+                  <Text style={styles.noAccountText}>Already registered? </Text>
+                  <TouchableOpacity onPress={() => { setStep(2); setAgreeTerms(true); }}>
+                    <Text style={styles.loginLinkText}>Activate Account</Text>
+                  </TouchableOpacity>
+                </View>
+          </>
+        ) }
+
       </ScrollView>
+
+  
       
     </SafeAreaView>
   );
@@ -314,4 +281,5 @@ const styles = StyleSheet.create({
   loginLinkContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 10 },
   noAccountText: { color: COLORS.gray, fontSize: 14 },
   loginLinkText: { color: COLORS.gold, fontSize: 14, fontWeight: 'bold' },
+  errorText: { color: COLORS.red, fontSize: 12, marginTop: 5 },
 });
