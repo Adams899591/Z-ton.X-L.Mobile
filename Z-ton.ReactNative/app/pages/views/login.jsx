@@ -251,12 +251,12 @@ const loginScreen = () => {
             onPress={handleBiometricLogin}
             disabled={isLoading}
           >
-            <Ionicons name="finger-print" size={44} color={COLORS.gold} />
+            <Ionicons name="finger-print" size={44} color={COLORS.gold} /> 
           </TouchableOpacity>
 
         </View>
 
-        <TouchableOpacity style={styles.forgotPassword}>
+        <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push("/pages/views/forgot-password")}>
           <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
         </TouchableOpacity>
 

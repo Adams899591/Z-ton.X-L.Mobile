@@ -7,18 +7,18 @@
     <style>
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #F3F4F6; color: #1F2937; margin: 0; padding: 0; }
         .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .header { background-color: #1F2937; color: #ffffff; padding: 25px 20px; text-align: center; border-bottom: 4px solid #B8860B; }
-        .header h1 { margin: 0; font-size: 20px; letter-spacing: 1px; }
-        .content { padding: 25px 20px; line-height: 1.5; }
-        .greeting { font-size: 16px; font-weight: bold; margin-bottom: 15px; }
-        .success-box { background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
-        .status-badge { display: inline-block; background-color: #10B981; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; }
-        .account-label { font-size: 12px; text-transform: uppercase; color: #9CA3AF; font-weight: 700; letter-spacing: 2px; margin-bottom: 5px; display: block; }
-        .account-number { font-size: 24px; font-weight: bold; color: #B8860B; letter-spacing: 3px; }
-        .details-list { list-style: none; padding: 0; margin: 15px 0; border-top: 1px solid #F3F4F6; padding-top: 15px; }
-        .details-list li { margin-bottom: 8px; font-size: 14px; }
-        .footer { background-color: #1F2937; padding: 20px; text-align: center; font-size: 12px; color: #9CA3AF; }
-        .btn { display: inline-block; padding: 12px 25px; background-color: #000000; color: #FFFFFF !important; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 15px; transition: background 0.3s; border: 1px solid #B8860B; }
+        .header { background-color: #1F2937; color: #ffffff; padding: 15px 15px; text-align: center; border-bottom: 4px solid #B8860B; }
+        .header h1 { margin: 0; font-size: 18px; letter-spacing: 1px; }
+        .content { padding: 15px 15px; line-height: 1.4; font-size: 13px; }
+        .greeting { font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+        .success-box { background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 12px; padding: 15px; text-align: center; margin: 15px 0; }
+        .status-badge { display: inline-block; background-color: #10B981; color: #ffffff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; }
+        .account-label { font-size: 11px; text-transform: uppercase; color: #9CA3AF; font-weight: 700; letter-spacing: 1.5px; margin-bottom: 5px; display: block; }
+        .account-number { font-size: 22px; font-weight: bold; color: #B8860B; letter-spacing: 3px; }
+        .details-list { list-style: none; padding: 0; margin: 10px 0; border-top: 1px solid #F3F4F6; padding-top: 10px; }
+        .details-list li { margin-bottom: 5px; font-size: 13px; }
+        .footer { background-color: #1F2937; padding: 15px; text-align: center; font-size: 11px; color: #9CA3AF; }
+        .btn { display: inline-block; padding: 10px 20px; background-color: #000000; color: #FFFFFF !important; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px; transition: background 0.3s; border: 1px solid #B8860B; }
         .highlight { color: #B8860B; font-weight: bold; }
     </style>
 </head>
@@ -51,7 +51,7 @@
                 <a href="#" class="btn">LOGIN TO YOUR ACCOUNT</a>
             </div>
 
-            <p style="margin-top: 25px; font-size: 14px;">Thank you for choosing Z-ton Bank as your trusted financial partner.</p>
+            <p style="margin-top: 15px; font-size: 12px;">Thank you for choosing Z-ton Bank as your trusted financial partner.</p>
             <p style="font-size: 14px;">Best Regards,<br><strong>The Z-ton Bank Team</strong></p>
         </div>
         <div class="footer">

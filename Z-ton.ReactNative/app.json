@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon1.jpg",
-    "scheme": "myreactnativeapp",
+    "scheme": "ztonbankingapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

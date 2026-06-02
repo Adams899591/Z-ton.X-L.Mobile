@@ -82,7 +82,7 @@ class RegisterController extends Controller
                return response()->json(['status' => 'error', 'message' => 'Server Error: ' . $e->getMessage()], 500);
         }
    }
-
+ 
    // this function handles user final registration
    public function verifyAccount(Request $request){
         $request->validate([
@@ -91,20 +91,37 @@ class RegisterController extends Controller
 
         $user = User::where("account_number", $request->account_number)->first();
 
+
         if (!$user) {
-            return response()->json(['status' => 'error', 'message' => 'User not found.'], 404);
+             return response()->json(['status' => 'error',
+                                        "errors" => [
+                                        "account_number" => ["Invalid account number."]
+                                        ]
+                                     ], 404);
+        } elseif ($user->status == "Active") {
+             return response()->json(['status' => 'error',
+                                        "errors" => [
+                                        "account_number" => ["User account already activated."]
+                                        ]
+                                     ], 400);
+        } elseif (in_array($user->status, ["Blocked", "Suspended"])) {
+             return response()->json(['status' => 'error',
+                                        "errors" => [
+                                        "account_number" => ["User account under review."]
+                                        ]
+                                     ], 403);
+        }elseif($user->status == "InActive"){
+
+                $user->status = "Active";
+                $user->email_verified_at = now();
+                $user->save();
+
+                // Pass the user object to the Mailable class
+                Mail::to($user->email)->send(new RegistrationComplectedMail($user));
+
+                return response()->json(['status' => 'success', 'message' => 'Account verified successfully.'], 200);
+
         }
-
-        $user->status = "Active";
-        $user->save();
-
-        // Pass the user object to the Mailable class
-        Mail::to($user->email)->send(new RegistrationComplectedMail($user));
-
-        return response()->json(['status' => 'success', 'message' => 'Account verified successfully.'], 200);
    }
 
 }
-
-
-

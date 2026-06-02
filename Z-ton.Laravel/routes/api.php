@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Auth\BiometricSetUpController;
 use App\Http\Controllers\Auth\DisableBiometricController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginBiometricController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\User\Ai\AiResponceController;
 use App\Http\Controllers\User\AiChat\AiResponseController;
 use App\Http\Controllers\User\Airtime\BiometricAirtimeController;
@@ -37,6 +39,8 @@ Route::prefix("auth")->group(function () {
     Route::post("disable-biometric/{userId}", [DisableBiometricController::class, "disableBiometrictSetUp"]);
     Route::post("register", [RegisterController::class, "register"]);
     Route::post("verify-account", [RegisterController::class, "verifyAccount"]);
+    Route::post("forgot-password", [ForgotPasswordController::class, "forgotPassword"]);
+    Route::post("reset-password", [ResetPasswordController::class, "resetPassword"]);
 });
 
 
@@ -54,6 +58,7 @@ Route::prefix("process-image")->group(function () {
     Route::post("upload-profile-image/{userId}", [UploadProfileImageController::class, "uploadProfileImage"]);
     // Route::delete("delete-profile-image/{userId}", [UserController::class, "deleteProfileImage"]);
 });
+
 // handle save transfer inside user folder
 Route::prefix("save-transfer")->group(function(){
    Route::post("save-payment/{userId}", [SavePaymentController::class, "SaveUserPayment"]);

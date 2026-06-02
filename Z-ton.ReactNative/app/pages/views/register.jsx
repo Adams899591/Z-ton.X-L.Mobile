@@ -107,7 +107,7 @@ const RegisterScreen = () => {
                           if (serverErrors.date_of_birth) serverErrors.dateOfBirth = serverErrors.date_of_birth;
                           // Map the account_number error to your state
                           if (serverErrors.account_number) setErrorAccountNumber(serverErrors.account_number[0]);
-                        
+                         
                           
                           setErrors(serverErrors);
                           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
