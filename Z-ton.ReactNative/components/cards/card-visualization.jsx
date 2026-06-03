@@ -2,11 +2,11 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-function CardVisualization({ styles, COLORS, isPinVisible }) {
+function CardVisualization({ styles, user, COLORS, isPinVisible }) {
   return (
     <>
                {/* Card Visualization */}
-                <View style={styles.creditCard}>
+                <View style={styles.creditCard}> 
         
                   <View style={styles.cardHeader}>
                     <Text style={styles.bankName}>Z-TON X-L BANK</Text>
@@ -16,7 +16,9 @@ function CardVisualization({ styles, COLORS, isPinVisible }) {
                   <Text style={styles.chip}>══</Text>
                   
                   <Text style={styles.cardNumber}>
-                    {isPinVisible ? "4582 1234 8890 4582" : "**** **** **** 4582"}
+                    {isPinVisible 
+                      ? user?.card_number?.toString().replace(/(\d{4})(?=\d)/g, '$1 ') 
+                      : `**** **** **** ${user?.card_number?.toString().slice(-4)}`}
                   </Text>
                   
                   <View style={styles.cardFooter}>

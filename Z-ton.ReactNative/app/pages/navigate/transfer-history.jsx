@@ -14,9 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
-import { UserContext } from "../../UserContext";
-import axios from 'axios';
-import { API_URL } from '../../server/config';
 
 
 const COLORS = {
@@ -30,89 +27,47 @@ const COLORS = {
   green: "#34C759",
 };
 
+// Mock data for debit and credit transactions
+const MOCK_TRANSACTIONS = [
+  {
+    id: '1',
+    type: 'debit',
+    title: 'Grocery Shopping',
+    amount: '-$120.50',
+    date: '25 May 2024',
+    time: '03:30 PM',
+    category: 'Food',
+  },
+  {
+    id: '2',
+    type: 'credit',
+    title: 'Salary Deposit',
+    amount: '+$2500.00',
+    date: '24 May 2024',
+    time: '09:00 AM',
+    category: 'Income',
+  },
+  {
+    id: '3',
+    type: 'debit',
+    title: 'Online Subscription',
+    amount: '-$15.99',
+    date: '23 May 2024',
+    time: '11:45 AM',
+    category: 'Entertainment',
+  },
+  // Add more mock transactions as needed
+];
+
 
 const TransferHistory = () => {
-  //  Access user data and updater function from context
-  const { user, setUser } = useContext(UserContext);
   const [searchQuery, setSearchQuery] = useState('');
-  const [data, setData] = useState([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // function to fetch transactions of the user from the server
-  const fetchUserTransactions = async () => {
-    if (!user?.id) return;
-    setIsLoading(true);
-
-    try {
-      // send response to laravel to fetch the transactions of the user
-      const response = await axios.post(`${API_URL}/user/fetchTransections/${user.id}`);
-      const responseData = response.data; // extract data from the response
-
-      if (responseData.status === "success" && responseData.result) {
-        // Extract the transactions array from the result object
-        const rawTransactions = responseData.result.transactions || [];
-
-        // Map the raw transactions to the format needed for the UI
-        const formattedTransactions = rawTransactions.map(tx => {
-          const dateObj = new Date(tx.created_at);
-
-          return {
-            id: tx.id.toString(),
-            type: tx.type, // 'debit' or 'credit'
-            title: tx.title,
-            // Formatting amount to include +/- sign and currency symbol
-            amount: `${tx.type === 'debit' ? '-' : '+'}$${parseFloat(tx.amount).toLocaleString()}`,
-            // Formatting date to '21 Apr 2026'
-            date: dateObj.toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            }),
-            // Formatting time to '04:43 AM'
-            time: dateObj.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-            category: tx.category || 'General',
-          };
-        });
-
-        // Update state with the formatted transactions
-        setData(formattedTransactions);
-
-        setIsLoading(false)
-      }
-    } catch (error) {
-      console.error("Error fetching transactions:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
-  // Fetch transactions when component mounts or user changes
-  useEffect(() => {
-    fetchUserTransactions(); // Call the function to fetch transactions when the component mounts or when the user changes
-  }, [user?.id]);
-
-
-  // this handles OnRefresh 
-  const onRefresh = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setRefreshing(true);
-    await fetchUserTransactions(); //  Call the function to fetch transactions when the user performs pull-to-refresh
-    setRefreshing(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
+  const [data, setData] = useState(MOCK_TRANSACTIONS); // Initialize with mock data
 
   // this handles delete action
-  const handleDeleteTransection = async (id) => {
+  const handleDeleteTransection = (id) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // send response to laravel to delete the transaction with the given id
-    await axios.delete(`${API_URL}/user/deleteTransaction/${id}`);
-
-    // update the ui
+    // Update the UI by filtering out the deleted item
     setData(prevData => prevData.filter(item => item.id !== id));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -198,28 +153,19 @@ const TransferHistory = () => {
           />
         </View>
 
-        {isLoading && !refreshing ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.gold} />
-            <Text style={styles.loadingText}>Fetching transactions...</Text>
-          </View>
-        ) : (
-          /* Transaction List */
-          <FlatList
-            data={filteredTransactions}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No transactions found.</Text>
-              </View>
-            }
-          />
-        )}
+        {/* Transaction List */}
+        <FlatList
+          data={filteredTransactions}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No transactions found.</Text>
+            </View>
+          }
+        />
       </SafeAreaView>
     </GestureHandlerRootView>
   );

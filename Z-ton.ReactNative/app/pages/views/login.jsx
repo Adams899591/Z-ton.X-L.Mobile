@@ -55,8 +55,12 @@ const loginScreen = () => {
                   // Save the user data to global context for access across the app
                   setUser(data.user);
                   
-                  // Successfully logged in
-                  router.replace("/pages/views/preparing-dashboard");
+                  // Route based on account status from API response
+                  if (data.user.status === "Blocked") {
+                    router.replace("/pages/views/account-restricted");
+                  } else {
+                    router.replace("/pages/views/preparing-dashboard");
+                  }
 
                  console.log(JSON.stringify(data, null, 2));
             }
@@ -137,7 +141,12 @@ const loginScreen = () => {
             await AsyncStorage.setItem("user", JSON.stringify(data.user));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             setUser(data.user);
-            router.replace("/pages/views/preparing-dashboard");
+            // Route based on account status from API response
+            if (data.user.status === "Blocked") {
+              router.replace("/pages/views/account-restricted");
+            } else {
+              router.replace("/pages/views/preparing-dashboard");
+            }
           } else {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             Alert.alert("Login Failed", data.message || "Invalid biometric session.");
@@ -266,6 +275,7 @@ const loginScreen = () => {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
+    
     </>
   );
 };

@@ -33,6 +33,7 @@ const CardsScreen = () => {
         {/* Card Visualization  .props*/}
         <CardVisualization
             styles={styles}
+            user={user}
             COLORS={COLORS}
             isPinVisible={isPinVisible}
         />

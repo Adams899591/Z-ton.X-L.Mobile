@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef , useState} from 'react';
-import { View, Text, Modal, Pressable, TouchableOpacity, PanResponder } from 'react-native';
+import { View, Text, Modal, Pressable, TouchableOpacity, PanResponder, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { API_URL } from '../../app/server/config';
@@ -7,34 +7,38 @@ import { API_URL } from '../../app/server/config';
 function ManageLimitsModal({user, isLimitModalVisible, setLimitModalVisible, COLORS, styles }) {
 
 
-   const [dailyLimit, setDailyLimit] = useState(user.transection_limit !== null ? user.transection_limit : 100000); // Initial daily limit
+   const [dailyLimit, setDailyLimit] = useState(!user.transection_limit || user.transection_limit <= 10 ? 100000 : user.transection_limit); // Initial daily limit
    const [trackWidth, setTrackWidth] = useState(0); // Width of the slider track
    const [currentSliderPosition, setCurrentSliderPosition] = useState(0); // Position of the thumb in pixels
    const startPos = useRef(0); // Store the position where the drag started
+   const [loading, setLoading] = useState(false); 
+   const [success, setSuccess] = useState(false);
    
 
-
+  // this function send request to laravel to set user transection limit
  const handleSubmition =  async () => {
-    
-    
+     setLoading(true);
+     setSuccess(false);
 
      try {
             const response = await axios.post(`${API_URL}/card/set-transection-limit/${user.id}`,{
                 transection_limit: dailyLimit,
             });
-console.log("uuuuuuuuuuuuuuuuuu");
             const responseData = response.data;
 
             if (responseData.status === "success") {
-                  setLimitModalVisible(false);
+                  setSuccess(true);
+                  // Keep the success icon visible for 1.5 seconds before closing
+                  setTimeout(() => {
+                      setLimitModalVisible(false);
+                      setSuccess(false);
+                  }, 1500);
             }
      } catch (error) {
          console.log(error);
-         
+     } finally {
+         setLoading(false);
      }
-
-
-     
   }
 
 
@@ -141,8 +145,18 @@ console.log("uuuuuuuuuuuuuuuuuu");
                 </View>
                 </View>
 
-                <TouchableOpacity style={styles.saveButton} onPress={() => handleSubmition() }>
-                <Text style={styles.saveButtonText}>Set New Limit</Text>
+                <TouchableOpacity 
+                    style={styles.saveButton} 
+                    onPress={() => handleSubmition()}
+                    disabled={loading || success}
+                >
+                    {loading ? (
+                        <ActivityIndicator color={COLORS.white} />
+                    ) : success ? (
+                        <Ionicons name="checkmark-circle" size={24} color={COLORS.white} />
+                    ) : (
+                        <Text style={styles.saveButtonText}>Set New Limit</Text>
+                    )}
                 </TouchableOpacity>
             </Pressable>
             </Pressable>

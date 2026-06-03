@@ -11,7 +11,7 @@ const COLORS = {
   darkGray: "#1F2937",
   lightGray: "#F3F4F6",
 };
-const ConfirmTransferModal = ({styles, showConfirmModal, setShowConfirmModal, pin, setPin, isLoading,setIsLoading,setShowSuccessModal,receiverName, accountNumber, bankName, amount, description, bankId, userId,setTransectionHistory}) => {
+const ConfirmTransferModal = ({styles,setUser, showConfirmModal, setShowConfirmModal, pin, setPin, isLoading,setIsLoading,setShowSuccessModal,receiverName, accountNumber, bankName, amount, description, bankId, userId,setTransectionHistory}) => {
  
     // Handle number press for PIN input
     const handleNumberPress = (num) => {
@@ -53,6 +53,7 @@ const ConfirmTransferModal = ({styles, showConfirmModal, setShowConfirmModal, pi
                 setShowConfirmModal(false);
                 setShowSuccessModal(true);
                 setPin(''); // Clear PIN after successful transfer
+                setUser(responseData.user); // Update user state with the latest data from the response
 
                 // Update transfer history state with the new transaction details from the response
                 // so that we can use it on the receipt page without having to make another API call to fetch the transaction details again

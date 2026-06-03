@@ -182,6 +182,7 @@ const TransferScreen = () => {
               if (response.data.status === "success") {
                   setTransectionHistory([response.data.transaction]);
                   setShowSuccessModal(true);
+                  setUser(response.data.user);
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               } else {
                   Alert.alert("Transfer Failed", response.data.message);
@@ -446,6 +447,7 @@ const TransferScreen = () => {
       {/* Confirm Transfer Modal .props passing approach*/}
       <ConfirmTransferModal
         styles={styles}
+        setUser={setUser}
         showConfirmModal={showConfirmModal}
         setShowConfirmModal={setShowConfirmModal}
         pin={pin}

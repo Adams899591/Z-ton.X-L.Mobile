@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\User\Transfer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Transaction;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ConfirmUserTransferController extends Controller
 {
@@ -30,6 +31,20 @@ class ConfirmUserTransferController extends Controller
 
             // 3. Verify the transaction PIN using the last 4 digits of the user's account number
             $last4DigitsOfAccountNumber = substr($user->account_number, -4);
+
+            // 4  caculate all transection made by the user for that day 
+            $dailyTransferAmount = Transaction::where("sender_id", $user->id)->whereDate("created_at", now())->sum("amount");
+            
+            // 5 Determine the effective limit (custom limit or default of 100,000)
+            // We use 100,000 if transection_limit is null or <= 10 (matching your frontend logic)
+            $effectiveLimit = ($user->transection_limit && $user->transection_limit > 10) ? $user->transection_limit : 100000;
+
+            if (($dailyTransferAmount + $request->amount) > $effectiveLimit) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Daily transaction limit exceeded. Your limit is ' . number_format($effectiveLimit) . '. You have already transferred ' . number_format($dailyTransferAmount) . ' today.',
+                ], 403); // Forbidden
+            }
 
             // Compare the provided PIN with the last 4 digits of the sender's account number
             if ($last4DigitsOfAccountNumber !== (string)$request->pin) { // Cast both to string for comparison
@@ -62,9 +77,16 @@ class ConfirmUserTransferController extends Controller
 
                 // Debit the sender's balance using decrement
                 $user->decrement('balance', $request->amount);
+                // update sender expenses
+                $user->increment('expenses', $request->amount);
+
 
                 // Credit the receiver's balance using increment
                 $receiver->increment('balance', $request->amount);
+                // update receiver income
+                $receiver->increment('income', $request->amount);
+
+                 
 
                 $reference = 'TRF-' . strtoupper(uniqid());
 
@@ -115,6 +137,7 @@ class ConfirmUserTransferController extends Controller
                     'amount' => $request->amount,
                     'description' => $request->description,
                     'date' => now()->toDateTimeString(),
+                    "user" => $user
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $ve) {
             return response()->json(['status' => 'error', 'message' => 'Validation Error', 'errors' => $ve->errors()], 422);
