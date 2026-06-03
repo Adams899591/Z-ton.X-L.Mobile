@@ -38,8 +38,11 @@ class UserFactory extends Factory
             'nin' => $this->faker->numerify('###########'), // 11 digits
             'date_of_birth' => $this->faker->dateTimeBetween('-80 years', '-18 years')->format('Y-m-d'),
             'balance' => $this->faker->randomFloat(2, 1000, 500000),
+            'income' => $this->faker->randomFloat(2, 1000, 500000),
+            'expenses' => $this->faker->randomFloat(2, 1000, 500000),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            "card_number" => $this->faker->numerify('################'), // 16 digits
         ];
     }
 

@@ -1,8 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useContext } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, StatusBar, Modal, Pressable, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { API_URL } from '../server/config';
+import CardVisualization from '../../components/cards/card-visualization';
+import CardControls from '../../components/cards/card-controls';
+import ManageLimitsModal from '../../components/cards/manage-limits-modal';
+import { UserContext } from '../UserContext';
 const COLORS = {
   black: "#000000",
   gold: "#B8860B",
@@ -11,162 +15,46 @@ const COLORS = {
   darkGray: "#1F2937",
   lightGray: "#F3F4F6",
 };
-
+ 
 const CardsScreen = () => {
 
+  //  Access user data and updater function from context
+  const { user, setUser } = useContext(UserContext);
   const [isPinVisible, setIsPinVisible] = useState(false);
   const [isLimitModalVisible, setLimitModalVisible] = useState(false);
-  const [dailyLimit, setDailyLimit] = useState(2500); // Initial daily limit
-  const [trackWidth, setTrackWidth] = useState(0); // Width of the slider track
-  const [currentSliderPosition, setCurrentSliderPosition] = useState(0); // Position of the thumb in pixels
-  const startPos = useRef(0); // Store the position where the drag started
 
-  const minLimit = 0;
-  const maxLimit = 10000; // Maximum possible limit
-  const thumbWidth = 24; // Width defined in styles.rangeThumb
 
-  // When track width is measured, set the initial position based on the $2500 default
-  useEffect(() => {
-    if (trackWidth > 0) {
-      const initialPosition = (dailyLimit / maxLimit) * trackWidth;
-      setCurrentSliderPosition(initialPosition);
-    }
-  }, [trackWidth, isLimitModalVisible]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt, gestureState) => {
-        // Capture the position of the thumb when the user first touches it
-        startPos.current = currentSliderPosition;
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (trackWidth <= 0) return;
-
-        // Calculate new position using the delta (change) in X
-        let newPosition = startPos.current + gestureState.dx;
-
-        // Boundary checks: don't let the thumb go off the track
-        if (newPosition < 0) {
-          newPosition = 0;
-        } else if (newPosition > trackWidth) {
-          newPosition = trackWidth;
-        }
-
-        // Update the visual position of the thumb
-        setCurrentSliderPosition(newPosition);
-
-        // Calculate the limit value based on the thumb percentage
-        const percentage = newPosition / trackWidth;
-        const newLimit = Math.round(percentage * (maxLimit - minLimit) + minLimit);
-        
-        // Round to nearest 50 for a smoother feel
-        setDailyLimit(Math.round(newLimit / 50) * 50);
-      },
-      onPanResponderRelease: () => {}
-    })
-  ).current;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
       <ScrollView contentContainerStyle={styles.content}>
         
-        {/* Card Visualization */}
-        <View style={styles.creditCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.bankName}>Z-TON X-L BANK</Text>
-            <Ionicons name="wifi" size={24} color="white" style={{ transform: [{ rotate: '90deg' }] }} />
-          </View>
-          
-          <Text style={styles.chip}>══</Text>
-          
-          <Text style={styles.cardNumber}>
-            {isPinVisible ? "4582 1234 8890 4582" : "**** **** **** 4582"}
-          </Text>
-          
-          <View style={styles.cardFooter}>
-            <View>
-              <Text style={styles.cardLabel}>CARD HOLDER</Text>
-              <Text style={styles.cardValue}>Z-TON USER</Text>
-            </View>
-            <View>
-              <Text style={styles.cardLabel}>EXPIRES</Text>
-              <Text style={styles.cardValue}>12/28</Text>
-            </View>
-          </View>
-        </View>
+        {/* Card Visualization  .props*/}
+        <CardVisualization
+            styles={styles}
+            COLORS={COLORS}
+            isPinVisible={isPinVisible}
+        />
 
-        <Text style={styles.sectionTitle}>Card Controls</Text>
-        
-        <View style={styles.actionGrid}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="lock-closed" size={24} color={COLORS.gold} />
-            <Text style={styles.actionText}>Freeze Card</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => setIsPinVisible(!isPinVisible)}
-          >
-            <Ionicons name={isPinVisible ? "eye" : "eye-off"} size={24} color={COLORS.gold} />
-            <Text style={styles.actionText}>{isPinVisible ? "Hide PIN" : "Show PIN"}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => setLimitModalVisible(true)}
-          >
-            <Ionicons name="infinite" size={24} color={COLORS.gold} />
-            <Text style={styles.actionText}>Manage Limits</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="refresh" size={24} color={COLORS.gold} />
-            <Text style={styles.actionText}>Replace Card</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Card Controls  .props*/}
+        <CardControls
+            styles={styles}
+            COLORS={COLORS}
+            isPinVisible={isPinVisible}
+            setIsPinVisible={setIsPinVisible}
+            setLimitModalVisible={setLimitModalVisible}
+        />
       </ScrollView>
 
       {/* Manage Limits Bottom Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isLimitModalVisible}
-        onRequestClose={() => setLimitModalVisible(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setLimitModalVisible(false)}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Card Transaction Limit</Text>
-              <TouchableOpacity onPress={() => setLimitModalVisible(false)}>
-                <Ionicons name="close-circle" size={28} color={COLORS.gray} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.limitAmount}>${dailyLimit.toLocaleString('en-US')}</Text>
-            <Text style={styles.limitSubtext}>Adjust your daily spending limit</Text>
-
-            <View style={styles.rangeContainer}>
-              <View 
-                onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
-                style={styles.rangeTrack}
-              >
-                <View style={[styles.rangeFill, { width: currentSliderPosition }]} />
-                <View 
-                  style={[
-                    styles.rangeThumb, 
-                    { left: currentSliderPosition - (thumbWidth / 2) }
-                  ]} 
-                  {...panResponder.panHandlers} // Attach pan handlers to the thumb
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.saveButton} onPress={() => setLimitModalVisible(false)}>
-              <Text style={styles.saveButtonText}>Set New Limit</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
+       <ManageLimitsModal
+          user={user}
+          isLimitModalVisible={isLimitModalVisible}
+          setLimitModalVisible={setLimitModalVisible}
+          COLORS={COLORS}
+          styles={styles}
+       />
     </SafeAreaView>
   );
 };
@@ -228,7 +116,8 @@ const styles = StyleSheet.create({
     height: 6, 
     backgroundColor: COLORS.gold, 
     borderRadius: 3, 
-    position: 'absolute' 
+    position: 'absolute',
+    left: 0,
   },
   rangeThumb: { 
     width: 24, 
@@ -241,6 +130,7 @@ const styles = StyleSheet.create({
     top: -9, 
     marginLeft: -12,
     elevation: 3,
+    zIndex: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,

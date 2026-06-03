@@ -12,6 +12,7 @@ use App\Http\Controllers\User\AiChat\AiResponseController;
 use App\Http\Controllers\User\Airtime\BiometricAirtimeController;
 use App\Http\Controllers\User\Airtime\FetchNetworkController;
 use App\Http\Controllers\User\Airtime\PurchaseAirtimeController;
+use App\Http\Controllers\User\Card\SetTransectionLimitController;
 use App\Http\Controllers\User\Drawer\UploadProfileImageController;
 use App\Http\Controllers\User\SaveTransfer\SavePaymentController;
 use App\Http\Controllers\User\SelectBeneficiary\SelectBeneficiaryController;
@@ -57,6 +58,11 @@ Route::prefix("user")->group(function () {
 Route::prefix("process-image")->group(function () {
     Route::post("upload-profile-image/{userId}", [UploadProfileImageController::class, "uploadProfileImage"]);
     // Route::delete("delete-profile-image/{userId}", [UserController::class, "deleteProfileImage"]);
+});
+
+// handles card inside user folder
+Route::prefix("card")->group(function () {
+    Route::post("set-transection-limit/{userId}", [SetTransectionLimitController::class, "setTransectionLimit"]);
 });
 
 // handle save transfer inside user folder

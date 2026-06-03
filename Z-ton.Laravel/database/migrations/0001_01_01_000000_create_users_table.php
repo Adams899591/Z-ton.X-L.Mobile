@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('account_type')->default('Savings Account');
             $table->string('currency')->default('USD');
-            $table->string('status')->default('Active');
+            $table->string('status')->default('Active'); 
             $table->string('phone')->unique();
             $table->string('account_number', 10)->unique();
             $table->string("profile_url")->nullable();
@@ -29,6 +29,10 @@ return new class extends Migration
             $table->string('password');
             $table->string("biometric_token")->nullable();
             $table->decimal('balance', 15, 2)->default(0.00); // For the Overview screen
+            $table->decimal('income', 15, 2)->default(0.00)->nullable();
+            $table->decimal('expenses', 15, 2)->default(0.00)->nullable();
+            $table->decimal('transection_limit', 15, 2)->default(0.00)->nullable();
+            $table->string("card_number")->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
