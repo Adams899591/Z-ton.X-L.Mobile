@@ -112,7 +112,7 @@ export default function Index() {
               <Text style={styles.linkText}>Internet Banking</Text>
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("./pages/views/register")}>
               <Text style={styles.linkText}>Open Account</Text>
             </TouchableOpacity>
             <View style={styles.separator} />
