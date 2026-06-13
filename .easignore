@@ -1,0 +1,6 @@
+node_modules/
+.expo/
+.eas/
+android/
+ios/
+Z-ton.Laravel/

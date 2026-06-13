@@ -1,6 +1,6 @@
 
 // this connects to the backend server, which is running on the local machine at port 8000
-export const API_URL = "http://10.90.251.166:8000/api"
+export const API_URL = "http://10.212.54.166:8000/api"
 
 // export const API_URL = "http://10.90.251.166:8000/api"
   

@@ -92,10 +92,32 @@ use Illuminate\Support\Facades\Route;
 */
 
 
+//     @react-navigation/drawer: The actual library that provides the drawer logic.
+// react-native-gesture-handler: Handles the swiping gestures to open and close the drawer.
+// react-native-reanimated: Provides the smooth animations for the drawer.
+    //  npx expo install @react-navigation/drawer
+    //  npx expo install react-native-reanimated
+    // npm install react-native-qrcode-svg
+    // react-native-svg
+    // npx expo install expo-navigation-bar
+    // npx expo install expo-clipboard
+    // npx expo-doctor 
+    //  npx expo install --fix
+    //  npx expo install expo-speech 
+    // eas build --profile development --platform android --clear-cache
+    // npm install react-native-safe-area-context 
+
+     
+
     // i also installed this 
     // 1. @react-native-community/datetimepicker
     // 2. @react-native-picker/picker
      // 3. @supabase/supabase-js
+     // 4. composer require league/flysystem-aws-s3-v3 "^3.0"
+     // 5. npm install -g eas-cli
+    //  6.   npx expo install expo-dev-client 
+    // 7.  npx expo prebuild
+    // 8. npx expo run:android
 
 
 
