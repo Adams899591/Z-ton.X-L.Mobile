@@ -1,21 +1,58 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Linking, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import * as Notifications from 'expo-notifications';
+   
 const COLORS = {
   black: "#000000",
-  gold: "#B8860B",
+  gold: "#B8860B",  
   gray: "#9CA3AF",
   white: "#FFFFFF",
   darkGray: "#1F2937",
   lightGray: "#F3F4F6",
 };
+
 const AboutDeveloperScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+
+  // send a notification to the user's device when the page loads 
+  useEffect(() => {
+    
+    const sendTestNotification = async () => {
+      try {
+        // 1. Check permissions first
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+
+        if (finalStatus === 'granted') {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: "Developer Profile Overview",
+              body: "Thank you for your interest in my professional background and technical expertise." 
+            },
+            trigger: null, // null means trigger immediately
+          });
+          console.log("✅ Test notification scheduled successfully");
+        } else {
+          console.warn("⚠️ Notification permissions not granted. Check device settings.");
+        }
+      } catch (error) {
+        console.error("❌ Error sending test notification:", error);
+      }
+    };
+    sendTestNotification(); 
+  }, []);
+
 
   // this component helps to handles 
   const SocialItem = ({ icon, label, onPress }) => (

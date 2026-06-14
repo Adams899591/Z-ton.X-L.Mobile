@@ -3,7 +3,7 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-
+ 
 // Can use this function below, OR use Expo's Push Notification Tool-> https://expo.dev/notifications
 export async function registerForPushNotificationsAsync() {
   if (Platform.OS === "android") {   // this set the notification channel for android devices, which is required for push notifications to work on android

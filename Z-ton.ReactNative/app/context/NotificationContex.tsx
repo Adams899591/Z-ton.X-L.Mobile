@@ -11,6 +11,16 @@ import { Subscription } from "expo-modules-core";
 import Constants from "expo-constants";
 import { registerForPushNotificationsAsync } from "@/notifications/registerForPushNotificationsAsync";
 
+// This allows notifications to be shown even when the app is in the foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true, // 
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 // This context provides the expo push token, the notification object, and any error that occurs during the registration process for push notifications. It also sets up listeners for incoming notifications and notification responses, and cleans them up when the component unmounts. The context can be used throughout the app to access the push token, notification data, and any errors related to push notifications.
 interface NotificationContextType {
   expoPushToken: string | null;
@@ -93,7 +103,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       }
     };
   }, []);
-
+ 
 
   return (
     // Provide the expo push token, notification data, and any errors related to push notifications to the components that consume this context. This allows other components in the app to access the push token for sending notifications, display received notification data, and handle any errors that may occur during the registration process for push notifications.
