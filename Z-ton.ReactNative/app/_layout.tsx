@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserContext } from "./UserContext";
+import { SafeAreaProvider} from "react-native-safe-area-context";
 
 export default function RootLayout() {
 
@@ -26,8 +27,14 @@ export default function RootLayout() {
 
 
   return (
+  
+    
     <UserContext.Provider value={{ user, setUser }}>
-      <Stack screenOptions={{headerShown: false}} />
+       <SafeAreaProvider> 
+           <Stack screenOptions={{headerShown: false}} />
+        </SafeAreaProvider> 
     </UserContext.Provider>
+   
+  
   );
 }

@@ -12,7 +12,8 @@ import {
   ActivityIndicator,
   Animated,
   TouchableOpacity,
-  StatusBar
+  StatusBar,
+  TextInput
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -25,6 +26,7 @@ import SendTextButton from '../../components/ai-chat/send-text-button';
 import { UserContext } from '../UserContext';
 import axios from 'axios';
 import { API_URL } from '../server/config';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Define a consistent color palette for the app
 const COLORS = {
@@ -52,6 +54,7 @@ const INITIAL_MESSAGES = [
  
 // Main AI Chat Screen Component
 const AIChatScreen = () => {
+  const insets = useSafeAreaInsets()
 
   // Access user data and updater function from context
   const { user, setUser } = useContext(UserContext); 
@@ -367,10 +370,13 @@ const AIChatScreen = () => {
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={90}
       >
 
 
-        <View style={styles.inputWrapper}>
+        <View style={[styles.inputWrapper, {
+          paddingBottom: insets.bottom + 10,
+        }]}>
 
             {/* Attachment Button for Image Picker (disabled during recording) .props*/}
               <ImagePickerAttachment
@@ -429,7 +435,7 @@ const AIChatScreen = () => {
             />
     
 
-        </View>
+        </View> 
 
 
       </KeyboardAvoidingView>

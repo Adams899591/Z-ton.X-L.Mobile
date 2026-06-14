@@ -10,6 +10,7 @@ import axios from 'axios';
 import { UserContext } from '../UserContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HeaderProfileSection from '../../components/(drawer)/header-profile-section';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
  
 const COLORS = {
   black: "#000000",
@@ -21,6 +22,7 @@ const COLORS = {
 
 // Custom Drawer Content with Profile Section and Navigation Items
 function CustomDrawerContent(props) {
+  const insets = useSafeAreaInsets();
        
         // Access user data and updater function from context
         const { user, setUser } = useContext(UserContext);  
@@ -115,7 +117,9 @@ function CustomDrawerContent(props) {
       </DrawerContentScrollView>
 
       {/* Bottom Logout */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, {
+        paddingBottom : insets.bottom + 10,
+      }]}>
         <DrawerItem
           label="Logout"
           icon={({ size }) => <Ionicons name="log-out-outline" size={size} color="#FF3B30" />}
@@ -137,7 +141,7 @@ export default function DrawerLayout() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: COLORS.darkGray },
+        headerStyle: { backgroundColor: COLORS.darkGray},
         headerTintColor: COLORS.white,
         headerRight: () => (
           <TouchableOpacity 
@@ -248,7 +252,7 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 15, marginHorizontal: 20 },
   sectionLabel: { fontSize: 12, color: COLORS.gray, marginLeft: 20, marginBottom: 10, fontWeight: 'bold' },
   drawerLabel: { fontSize: 15 },
-  footer: { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingBottom: 20 },
+  footer: { borderTopWidth: 1, borderTopColor: '#E5E7EB', },
   headerBadge: {
     position: 'absolute',
     right: -4,

@@ -8,6 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import RegisterStep1 from '../../../components/register/register-step-1';
 import RegisterStep2 from '../../../components/register/register-step-2';
 import { API_URL } from '../../server/config';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   black: "#000000",
@@ -20,6 +21,7 @@ const COLORS = {
 };
 
 const RegisterScreen = () => {
+  const Insets = useSafeAreaInsets();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -131,11 +133,17 @@ const RegisterScreen = () => {
 
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
+   
+    <SafeAreaView style={styles.container}>
+    
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[
+        styles.header,{
+          paddingTop: Insets.top,
+        }]}>
         <TouchableOpacity onPress={() => step === 2 ? setStep(1) : router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color={COLORS.white} />
         </TouchableOpacity>
@@ -214,6 +222,7 @@ const RegisterScreen = () => {
   
       
     </SafeAreaView>
+     </>
   );
 };
 
@@ -226,7 +235,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    height: 70,
+    // height: 70,
+    paddingVertical: 15,
     backgroundColor: COLORS.darkGray,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,

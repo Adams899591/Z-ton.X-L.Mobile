@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Linking } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Linking, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   black: "#000000",
@@ -14,6 +15,7 @@ const COLORS = {
 };
 const AboutDeveloperScreen = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // this component helps to handles 
   const SocialItem = ({ icon, label, onPress }) => (
@@ -26,9 +28,12 @@ const AboutDeveloperScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, {
+        paddingTop: insets.top
+      }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
@@ -159,7 +164,7 @@ const AboutDeveloperScreen = () => {
           <Text style={styles.footerText}>© 2024 Usman Adams. All rights reserved.</Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

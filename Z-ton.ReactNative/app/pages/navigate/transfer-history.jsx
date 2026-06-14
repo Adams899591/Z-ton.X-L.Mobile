@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   black: "#000000",
@@ -61,6 +61,7 @@ const MOCK_TRANSACTIONS = [
 
 
 const TransferHistory = () => {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [data, setData] = useState(MOCK_TRANSACTIONS); // Initialize with mock data
 
@@ -126,14 +127,16 @@ const TransferHistory = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      <View style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
         {/* Professional Header - Always Visible */}
-        <View style={styles.header}>
+        <View style={[styles.header,{
+           paddingTop: insets.top,
+        }]}>
 
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.black} />
+            <Ionicons name="arrow-back" size={24} color={COLORS.white} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Transaction History</Text>
           <TouchableOpacity style={styles.filterButton}>
@@ -166,7 +169,7 @@ const TransferHistory = () => {
             </View>
           }
         />
-      </SafeAreaView>
+      </View>
     </GestureHandlerRootView>
   );
 };
@@ -180,12 +183,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
+    backgroundColor: COLORS.darkGray,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.lightGray,
+    borderBottomColor: COLORS.darkGray, 
   },
   backButton: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.black },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.white },
   filterButton: { padding: 5 },
   searchContainer: {
     flexDirection: 'row',

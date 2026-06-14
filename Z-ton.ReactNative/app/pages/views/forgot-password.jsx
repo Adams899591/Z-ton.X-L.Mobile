@@ -5,6 +5,10 @@ import { useRouter } from 'expo-router';
 import axios from 'axios';
 import * as Haptics from 'expo-haptics';
 import { API_URL } from '../../server/config';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+
+
 
 const COLORS = {
   black: "#000000",
@@ -17,6 +21,7 @@ const COLORS = {
 };
 
 function ForgotPassword() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -53,11 +58,11 @@ function ForgotPassword() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, {  paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color={COLORS.white} />
         </TouchableOpacity>
@@ -107,7 +112,7 @@ function ForgotPassword() {
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -120,7 +125,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    height: 70,
+    // height: 70,
+    paddingVertical: 15,
     backgroundColor: COLORS.darkGray,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,

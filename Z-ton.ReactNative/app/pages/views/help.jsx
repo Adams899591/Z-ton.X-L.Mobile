@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, StatusBar } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   black: "#000000",
@@ -13,6 +14,7 @@ const COLORS = {
 };
 
 const HelpScreen = () => {
+  const insets = useSafeAreaInsets();
   const helpOptions = [
     { id: '1', title: 'Contact Us', icon: 'call-outline', route: '/pages/views/contact-us' },
     { id: '2', title: 'About Z-ton Bank', icon: 'business-outline', route: '/pages/views/about-bank' },
@@ -20,11 +22,13 @@ const HelpScreen = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, {
+        paddingTop: insets.top,
+      }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
@@ -57,7 +61,7 @@ const HelpScreen = () => {
       <View style={styles.footer}>
         <Text style={styles.versionText}>Z-ton Mobile | Version 1.0.0</Text>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -70,7 +74,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    height: 70,
+    // height: 70,
+    paddingVertical: 15,
     backgroundColor: COLORS.darkGray,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,

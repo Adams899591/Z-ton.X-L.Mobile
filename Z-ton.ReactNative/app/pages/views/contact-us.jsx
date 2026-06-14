@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking, Modal,StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   black: "#000000",
@@ -14,6 +15,7 @@ const COLORS = {
 };
 
 const ContactUsScreen = () => {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [isAlertVisible, setIsAlertVisible] = useState(false);
 
@@ -37,16 +39,23 @@ const ContactUsScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={styles.container}>
+      
       {/* Header with Back Button */}
-      <View style={styles.header}>
+      <View style={[styles.header, {
+        paddingTop: insets.top,
+        // height: 60 + insets.top
+      }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contact Us</Text>
         <View style={{ width: 40 }} />
       </View>
+
+      <ScrollView>
 
         {/* Phone Section */}
         <View style={styles.section}>
@@ -150,7 +159,8 @@ const ContactUsScreen = () => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
+   </>
   )
 };
 

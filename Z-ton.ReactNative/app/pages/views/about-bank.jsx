@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   black: "#000000",
@@ -15,6 +16,7 @@ const COLORS = {
 
 const AboutBankScreen = () => {
   const router = useRouter();
+  const Insets = useSafeAreaInsets();
 
   const ValueItem = ({ icon, title, description }) => (
     <View style={styles.valueItem}>
@@ -29,9 +31,12 @@ const AboutBankScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, {
+        paddingTop: Insets.top
+      }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
@@ -97,7 +102,7 @@ const AboutBankScreen = () => {
           <Text style={styles.footerText}>© 2024 Z-ton X-L Bank PLC. All rights reserved.</Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

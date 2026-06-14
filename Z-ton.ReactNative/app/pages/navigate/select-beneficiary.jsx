@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   black: "#000000",
@@ -31,6 +32,7 @@ import { UserContext } from '../../UserContext';
 
 
 const SelectBeneficiary = () => {
+  const insets = useSafeAreaInsets();
   //  Access user data and updater function from context
   const { user, setUser } = useContext(UserContext);
   const [searchQuery, setSearchQuery] = useState('');
@@ -173,11 +175,13 @@ const SelectBeneficiary = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
+      <View style={styles.container}>
+       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       {/* Professional Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, {
+         paddingTop: insets.top,
+      }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
@@ -218,7 +222,7 @@ const SelectBeneficiary = () => {
           }
         />
       )}
-      </SafeAreaView>
+      </View>
     </GestureHandlerRootView>
   );
 };

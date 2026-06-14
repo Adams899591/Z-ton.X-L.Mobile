@@ -9,6 +9,7 @@ import * as SecureStore from "expo-secure-store";
 import { UserContext } from "../../UserContext";
 import * as Haptics from 'expo-haptics';
 import {API_URL} from "../../server/config"
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   black: "#000000",
@@ -17,8 +18,10 @@ const COLORS = {
   white: "#FFFFFF",
   darkGray: "#1F2937",
 };
+ 
 
-const loginScreen = () => {
+const LoginScreen = () => {
+  const insets = useSafeAreaInsets();
   const { user, setUser } = useContext(UserContext);
   const [rememberMe, setRememberMe] = useState(false);
   const [accountNumber, setAccountNumber] = useState('');
@@ -28,6 +31,7 @@ const loginScreen = () => {
   const [accountNumberError, setAccountNumberError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+ 
 
   // handle account number and password login
   const handleSubmit = async () => {
@@ -168,13 +172,17 @@ const loginScreen = () => {
 
   return (
     <>
-    
-    <SafeAreaView style={styles.container} >
+    <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} /> 
+    <View style={styles.container} >
 
-         <StatusBar barStyle="light-content" backgroundColor={COLORS.darkGray} />
-         
       {/* Header: Back Button and Bank Logo */}
-      <View style={styles.header}>
+      <View style={[
+        styles.header, 
+        { 
+          paddingTop: insets.top , 
+          // height: 70 + insets.top 
+        }
+      ]}>
         <TouchableOpacity onPress={() => router.push('/')} style={styles.backButton}>
              <Ionicons name="arrow-back" size={28} color={COLORS.white} />
         </TouchableOpacity>
@@ -274,14 +282,14 @@ const loginScreen = () => {
           <Text style={styles.internetBankingText}>Continue with Internet Banking</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
     
     </>
   );
 };
 
 
-export default loginScreen
+export default LoginScreen
  
 const styles = StyleSheet.create({
   container: {
@@ -289,13 +297,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   header: {
-    // display: "flex",
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 2,
-    height: 70,
+    paddingVertical: 15,
     backgroundColor: COLORS.darkGray,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,

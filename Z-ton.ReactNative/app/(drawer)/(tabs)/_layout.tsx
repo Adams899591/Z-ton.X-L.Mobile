@@ -2,16 +2,18 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet } from 'react-native';
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const COLORS = {
   black: "#000000",
   gold: "#B8860B",
-  gray: "#9CA3AF",
+  gray: "#9CA3AF", 
   white: "#FFFFFF",
   darkGray: "#1F2937", // Used for consistent dark header/tab bar background
 };
 
 const ZenTonBanklayout = () => {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -20,8 +22,8 @@ const ZenTonBanklayout = () => {
         tabBarStyle: {
           backgroundColor: COLORS.darkGray, // Dark background for the tab bar
           borderTopWidth: 0, // Remove the default top border
-          paddingBottom: 5, // Add some padding at the bottom for better visual
-          height: 75, // Fixed height for the tab bar
+          paddingBottom: insets.bottom + 20, // Add some padding at the bottom for better visual 10
+          // height: 75, // Fixed height for the tab bar
         },
         headerShown: false, // Hide the header by default for all tab screens
       }}
