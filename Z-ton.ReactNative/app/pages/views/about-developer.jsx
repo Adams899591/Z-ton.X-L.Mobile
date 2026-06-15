@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
+import { useNotification } from '../../context/NotificationContex';
+import messaging from "@react-native-firebase/messaging"
    
 const COLORS = {
   black: "#000000",
@@ -19,12 +21,17 @@ const AboutDeveloperScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  
 
   // send a notification to the user's device when the page loads 
   useEffect(() => {
     
     const sendTestNotification = async () => {
+      
+      
       try {
+        const token = await messaging().getToken(); // try ing to test 
+        console.log(`Current Expo Push Token: ${token}`); // this is the token from firebase 
         // 1. Check permissions first
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
@@ -43,7 +50,7 @@ const AboutDeveloperScreen = () => {
             trigger: null, // null means trigger immediately
           });
           console.log("✅ Test notification scheduled successfully");
-        } else {
+        } else if (finalStatus !== 'undetermined') {
           console.warn("⚠️ Notification permissions not granted. Check device settings.");
         }
       } catch (error) {
@@ -51,7 +58,7 @@ const AboutDeveloperScreen = () => {
       }
     };
     sendTestNotification(); 
-  }, []);
+  },[]);
 
 
   // this component helps to handles 

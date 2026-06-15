@@ -106,6 +106,7 @@ use Illuminate\Support\Facades\Route;
     //  npx expo install expo-speech 
     // eas build --profile development --platform android --clear-cache
     // npm install react-native-safe-area-context 
+    //  npm install @react-nativefirebase/messaging  
 
      
 

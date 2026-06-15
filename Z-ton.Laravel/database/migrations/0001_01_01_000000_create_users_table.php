@@ -28,6 +28,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string("biometric_token")->nullable();
+            $table->string("firebase_token")->nullable();
             $table->decimal('balance', 15, 2)->default(0.00); // For the Overview screen
             $table->decimal('income', 15, 2)->default(0.00)->nullable();
             $table->decimal('expenses', 15, 2)->default(0.00)->nullable();
