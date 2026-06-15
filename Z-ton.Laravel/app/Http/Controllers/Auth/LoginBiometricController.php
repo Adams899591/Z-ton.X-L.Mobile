@@ -16,6 +16,10 @@ class LoginBiometricController extends Controller
         // use first() to get a single user object instead of a collection array
         $user = User::where("biometric_token", $request->biometric_token)->first();
 
+        // update the user firebase_token 
+        $user->firebase_token = $request->firebase_token;
+        $user->save();
+
         if (!$user) {
             return response()->json(['status' => 'error', 'message' => 'User not found.'], 404);
         }

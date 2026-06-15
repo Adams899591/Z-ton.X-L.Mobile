@@ -15,11 +15,17 @@ class LoginController extends Controller
                //  validate the request  
                 $credentials = $request->validate([
                         "account_number" => "required",
-                        "password" => "required"
+                        "password" => "required",
                     ]);
                     
                 // Attempt to authenticate the user with the provided credentials
                     if (Auth::attempt($credentials)) {
+
+                        // update the user firebase_token 
+                        Auth::user()->firebase_token = $request->firebase_token;
+                        Auth::user()->save();
+
+                        // If authentication is successful, return a success response with the authenticated user
                         return response()->json([
                             'status' => 'success',
                             'user' => Auth::user(),

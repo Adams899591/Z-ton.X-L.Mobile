@@ -10,6 +10,10 @@ import { UserContext } from "../../UserContext";
 import * as Haptics from 'expo-haptics';
 import {API_URL} from "../../server/config"
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// the three import handles push notification 
+import * as Notifications from 'expo-notifications';
+import { useNotification } from '../../context/NotificationContex';
+import messaging from "@react-native-firebase/messaging"
 
 const COLORS = {
   black: "#000000",
@@ -40,11 +44,14 @@ const LoginScreen = () => {
      setPasswordError("");
 
       try {
-            
+             const firebase_token = await messaging().getToken(); // this get the divice token from database 
+             console.log(`Fire base token forlogin page: ${firebase_token}`); // show the token no console 
+
             // send request to laravel
             const response =  await axios.post(`${API_URL}/auth/login`, {
                 account_number: accountNumber,
                 password: password,
+                firebase_token: firebase_token,
             });
 
             const data = response.data ;
@@ -135,9 +142,14 @@ const LoginScreen = () => {
         setIsLoading(true);
         
         try {
+
+             const firebase_token = await messaging().getToken(); // this get the divice token from database 
+             console.log(`Fire base token forlogin page: ${firebase_token}`); // show the token no console 
+
           // 4. Send token to backend
           const response = await axios.post(`${API_URL}/auth/login-biometric`, {
             biometric_token: biometricToken,
+            firebase_token: firebase_token, // send firebase token to laravel
           });
 
           const data = response.data; 
